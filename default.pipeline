@@ -1,0 +1,6 @@
+{
+    "shader": "./default.shader",
+    "cullMode": "none",
+    "depthCompare": "less",
+    "format": "bgra8unorm"
+}
