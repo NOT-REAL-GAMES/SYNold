@@ -1,12 +1,17 @@
-@vertex
-fn main(
-  @builtin(vertex_index) i : u32
-) -> @builtin(position) vec4<f32> {
-  var pos = array<vec2<f32>, 3>(
-    vec2(0.0, 0.5),
-    vec2(-0.5, -0.5),
-    vec2(0.5, -0.5)
-  );
+struct VSOut {
+    @builtin(position) Position: vec4f,
+};
 
-  return vec4<f32>(pos[i], 0.0, 1.0);
+    struct Uniforms {
+    projMatrix: mat4x4<f32>
 }
+
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
+
+@vertex
+fn main(@location(0) inPos: vec3f) -> VSOut {
+    var vsOut: VSOut;
+    vsOut.Position = uniforms.projMatrix*vec4f(inPos, 1);
+    return vsOut;
+}
+		
