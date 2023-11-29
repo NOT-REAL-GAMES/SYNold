@@ -7,7 +7,7 @@ export var depthTexture;
 export var canvas;
 
 var pipelinePaths = ["./default.pipeline"]
-var pipelines = []
+var pipelines = {}
 
 import * as syn from './base.js'
 
@@ -148,19 +148,23 @@ export async function render(){
 	});
 
 	var projmat = syn.math.mat4.perspective(2, canvas.clientWidth/canvas.clientHeight, 0.01, 1000000.0);
-	projmat = syn.math.mat4.translate(projmat,[0,0,-10])
+	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/1000),0,-10]);
 	
 	device.queue.writeBuffer(buffers["transform"].buffer["buffer"], 0, projmat);
 
-	pass.setPipeline(pipelines[0]);
+	pass.setPipeline(pipelines["default"]);
 
 	pass.setBindGroup(0,buffers["transform"].bindGroup);
 
-	pass.setVertexBuffer(0,vertexBuffers[0]);
+	for(var a=0;a<vertexBuffers.length;++a){
+		pass.setVertexBuffer(0,vertexBuffers[a]);
 
-	pass.setIndexBuffer(indexBuffers[0],'uint16')
+		pass.setIndexBuffer(indexBuffers[a],'uint16')
 
-	pass.drawIndexed(36,1);
+		pass.drawIndexed(totalidx[a],1);
+	}
+
+	
 
 	pass.end();
 
@@ -174,10 +178,10 @@ var vertexBufferDescs = []
 
 var indexBuffers = [];
 
+var totalidx = [];
+
 export async function createPipelines(){
 	
-console.log(Object.values(buffers));
-
 	for(var i = 0; i<pipelinePaths.length;++i){
 
 		var bindGroupLayouts = []
@@ -209,28 +213,37 @@ console.log(Object.values(buffers));
 			)
 
 
-			var model = await syn.io.getJSON('./cube.model')
-			
-			var arr = new Float32Array(model.indices.length*3);
-			var idx = new Int16Array(model.indices.length);
+			for(var x=0;x<syn.scene.mainScene.gameObjects.length;++x){
 
-			for(var j=0;j<model.indices.length;){
-				var cur = model.indices[j];
-				arr[j*3]=(model.positions[cur*3])
-				arr[j*3+1]=(model.positions[cur*3+1])
-				arr[j*3+2]=(model.positions[cur*3+2])
+				var arr = Array();
+				var idx = Array();	
 
-				idx[j]=(model.indices[j]);
-				++j;
+				totalidx.push(0)
+
+				console.log(syn.scene.mainScene.gameObjects[x].name)
+
+				var model = await syn.io.getJSON(syn.scene.mainScene.
+					gameObjects[x].components.renderer.modelSource);
+	
+				for(var j=0;j<model.indices.length;){
+					var cur = model.indices[j];
+					arr.push(model.positions[cur*3])
+					arr.push(model.positions[cur*3+1])
+					arr.push(model.positions[cur*3+2])
+
+					totalidx[x] += 1;
+
+					idx.push(model.indices[j]);
+					++j;
+				}
+
+				vertexBuffers.push(await (syn.utils.createBuffer(arr,GPUBufferUsage.VERTEX)));
+				indexBuffers.push(await (syn.utils.createBuffer(idx,GPUBufferUsage.INDEX)))
+	
+	
 			}
-
-			console.log(arr);
-
-			vertexBuffers.push(await (syn.utils.createBuffer(arr,GPUBufferUsage.VERTEX)));
-			indexBuffers.push(await (syn.utils.createBuffer(idx,GPUBufferUsage.INDEX)))
+			
 		}
-
-
 
 		console.log(vertexBuffers)
 
@@ -238,8 +251,8 @@ console.log(Object.values(buffers));
 			code:await syn.io.getRaw(shader.vertex)});
 		var fragment = device.createShaderModule({
 			code:await syn.io.getRaw(shader.fragment)});
-
-		pipelines.push(
+			
+		pipelines[pipeline.name]=(
 			device.createRenderPipeline({
 				layout: layout,
 				vertex: {

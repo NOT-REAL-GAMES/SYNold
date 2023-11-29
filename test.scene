@@ -1,0 +1,33 @@
+{
+	"gameObjects": [{			
+		"name": "cube",
+
+		"transform":{
+			"position": [0,0,0],
+			"rotation": [0,0,0],
+			"scale": [2,1,1]
+		},
+		"components":{
+			"renderer":{
+				"modelSource": "./cube.model",
+				"materials": [{
+				}]
+			}
+		}
+	},{			
+		"name": "floor",
+
+		"transform":{
+			"position": [0,0,0],
+			"rotation": [0,0,0],
+			"scale": [2,1,1]
+		},
+		"components":{
+			"renderer":{
+				"modelSource": "./floor.model",
+				"materials": [{
+				}]		
+			}
+		}
+	}]
+}
