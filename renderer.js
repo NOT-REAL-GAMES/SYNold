@@ -15,6 +15,12 @@ var transformBuffer = {};
 
 var buffers = {};
 
+const BindingLayoutType = {
+	Buffer: "buffer",
+	Sampler: "sampler",
+	Texture: "texture"
+}
+
 export async function initializeBuffer(name,subnames,size,usage,visibility,bst){
 	buffers[name] = {};
 
@@ -50,7 +56,7 @@ export async function initializeBuffer(name,subnames,size,usage,visibility,bst){
 	}
 
 	for(var i=0;i<bst.length;++i){
-		if(bst[i]==="buffer"){
+		if(bst[i]===BindingLayoutType.Buffer){
 			buffers[name].bindGroupLayoutEntries[i].buffer = { type: "uniform" };
 		}
 	}
@@ -86,7 +92,7 @@ export async function init(){
 	//tHeRe'S gOt tO bE A bEtTeR wAy!!!
 	initializeBuffer(
 		"transform", ["buffer"], [4*16], [GPUBufferUsage.UNIFORM | 
-		GPUBufferUsage.COPY_DST], [GPUShaderStage.VERTEX] ,["buffer"],0)
+		GPUBufferUsage.COPY_DST], [GPUShaderStage.VERTEX] ,[BindingLayoutType.Buffer],0)
 
 	await createPipelines();
 	
