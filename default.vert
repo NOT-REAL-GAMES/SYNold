@@ -1,5 +1,7 @@
 struct VSOut {
     @builtin(position) Position: vec4f,
+    @location(0) uv: vec2f
+
 };
 
     struct Uniforms {
