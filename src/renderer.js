@@ -22,67 +22,75 @@ const BindingLayoutType = {
 }
 var sampler;
 
-export async function initializeBuffer(name,subnames,size,usage,visibility,bst,texture=null,includeInLayout=true){
+export async function initializeBuffer(name,sbuffers=[{}],includeInLayout=true){
 	buffers[name] = {};
 
 	buffers[name].buffer = {};
 	buffers[name].binding = {};
 
-	for(var i=0;i<subnames.length;++i){	
-		if(bst[i]===BindingLayoutType.Buffer){
-		
-			buffers[name].buffer[subnames[i]] = device.createBuffer({
-				usage: usage,
-				size: size[i]
-			});
-
-			buffers[name].binding[subnames[i]] = {
-				buffer: buffers[name].buffer[subnames[i]],
-				size: size[i],
-				offset: 0
-			};
-		}
-	}
-
 	buffers[name].bindGroupEntries = [];
 	buffers[name].bindGroupLayoutEntries = [];
 
-	for(var i=0;i<bst.length;++i){
-		if(bst[i]===BindingLayoutType.Buffer){
+	for(var j=0;j<Object.values(sbuffers).length;++j)
+	{
+		var currentSubBuffer = Object.values(sbuffers)[j]
+		console.log(currentSubBuffer)
+			
+			if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
+			
+				buffers[name].buffer[currentSubBuffer.name] = device.createBuffer({
+					usage: currentSubBuffer.usage,
+					size: currentSubBuffer.size
+				});
+
+				buffers[name].binding[currentSubBuffer.name] = {
+					buffer: buffers[name].buffer[currentSubBuffer.name],
+					size: currentSubBuffer.size,
+					offset: 0
+				};
+			}
+		
+
+
+		if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
 
 			buffers[name].bindGroupEntries.push({
-				resource: buffers[name].binding[subnames[i]],
-				binding: i
+				resource: buffers[name].binding[currentSubBuffer.name],
+				binding: j
 			});
-		} else if (bst[i]===BindingLayoutType.Sampler){
+		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Sampler){
 			buffers[name].bindGroupEntries.push({
 				resource: sampler,
-				binding: i
+				binding: j
 			});
-		} else if (bst[i]===BindingLayoutType.Texture){
-			console.log(texture)
+		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Texture){
 			
+			console.log(currentSubBuffer.texture)
+
 			buffers[name].bindGroupEntries.push({
-				resource: texture[i].createView(),
-				binding: i
+				resource: currentSubBuffer.texture.createView(),
+				binding: j
 			});
 		}
 
-		buffers[name].bindGroupLayoutEntries.push({
-			visibility: visibility[i],
-			binding: i
+		await buffers[name].bindGroupLayoutEntries.push({
+			visibility: currentSubBuffer.visibility,
+			binding: j
 		});
+		
+		console.log(buffers[name].bindGroupLayoutEntries.length)
+
+		if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
+			buffers[name].bindGroupLayoutEntries[j].buffer = { type: "uniform" };
+		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Sampler){
+			buffers[name].bindGroupLayoutEntries[j].sampler = { type: "filtering" };
+		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Texture){
+			buffers[name].bindGroupLayoutEntries[j].texture = { type: "float" };
+		}
+		
 	}
 
-	for(var i=0;i<bst.length;++i){
-		if(bst[i]===BindingLayoutType.Buffer){
-			buffers[name].bindGroupLayoutEntries[i].buffer = { type: "uniform" };
-		} else if (bst[i]===BindingLayoutType.Sampler){
-			buffers[name].bindGroupLayoutEntries[i].sampler = { type: "filtering" };
-		} else if (bst[i]===BindingLayoutType.Texture){
-			buffers[name].bindGroupLayoutEntries[i].texture = { type: "float" };
-		}
-	}
+	console.log(buffers[name].bindGroupLayoutEntries)
 
 	buffers[name].bindGroupLayout = 
 		device.createBindGroupLayout({
@@ -121,23 +129,47 @@ export async function init(){
 	});
 
 	//tHeRe'S gOt tO bE A bEtTeR wAy!!!
-	initializeBuffer(
-		"transform", ["buffer"], [4*16], [GPUBufferUsage.UNIFORM | 
-		GPUBufferUsage.COPY_DST], [GPUShaderStage.VERTEX] ,[BindingLayoutType.Buffer],0);
 
-	initializeBuffer("default", ["sampler","texture"], [], [], 
-		[GPUShaderStage.FRAGMENT,GPUShaderStage.FRAGMENT] ,
-		[BindingLayoutType.Sampler,BindingLayoutType.Texture],
-		[null,await syn.utils.createSolidColorTexture(1,0,0.2,1)]);
+	//name,size,usage,visibility,bindingLayoutType,texture=null
+	initializeBuffer(
+		"transform",[{
+			name: "buffer",
+			size: 4*16,
+			usage: GPUBufferUsage.UNIFORM | 
+					GPUBufferUsage.COPY_DST,
+			visibility: GPUShaderStage.VERTEX,
+			bindingLayoutType: BindingLayoutType.Buffer
+		}]
+	);
+
+
 	
-	//automate material initialization
+	await initializeBuffer("default", [{
+		name: "sampler",
+		visibility: GPUShaderStage.FRAGMENT,
+		bindingLayoutType: BindingLayoutType.Sampler
+	},{
+		name: "albedo",
+		visibility: GPUShaderStage.FRAGMENT,
+		bindingLayoutType: BindingLayoutType.Texture,
+		texture: await syn.utils.createSolidColorTexture(1,0,0.2,1)
+	}]);
+	
+		//automate material initialization
 	//name of buffer corresponds to the
 	//name of the game object for now
-	initializeBuffer("cube", ["sampler","texture"], [], [], 
-		[GPUShaderStage.FRAGMENT,GPUShaderStage.FRAGMENT] ,
-		[BindingLayoutType.Sampler,BindingLayoutType.Texture],
-		[null,await syn.utils.createSolidColorTexture(0,1,1,1)],false);
 
+	//TODO: add custom sampler functionality
+	await initializeBuffer("cube", [{
+		name: "sampler",
+		visibility: GPUShaderStage.FRAGMENT,
+		bindingLayoutType: BindingLayoutType.Sampler
+	},{
+		name: "albedo",
+		visibility: GPUShaderStage.FRAGMENT,
+		bindingLayoutType: BindingLayoutType.Texture,
+		texture: await syn.utils.createSolidColorTexture(0,1,1,1)
+	}],false);
 
 	await createPipelines();
 	
@@ -214,7 +246,7 @@ export async function render(){
 		if(buffers[name]!=null){
 			pass.setBindGroup(1,buffers[name].bindGroup);
 		} else{
-			console.log(name+" has no material")
+			console.log(name+" has no material, reverting to default.")
 			pass.setBindGroup(1,buffers["default"].bindGroup);
 		}
 
