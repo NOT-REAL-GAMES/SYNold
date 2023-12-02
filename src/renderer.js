@@ -22,7 +22,7 @@ const BindingLayoutType = {
 }
 var sampler;
 
-export async function initializeBuffer(name,sbuffers=[{}],includeInLayout=true){
+export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true){
 	buffers[name] = {};
 
 	buffers[name].buffer = {};
@@ -31,10 +31,9 @@ export async function initializeBuffer(name,sbuffers=[{}],includeInLayout=true){
 	buffers[name].bindGroupEntries = [];
 	buffers[name].bindGroupLayoutEntries = [];
 
-	for(var j=0;j<Object.values(sbuffers).length;++j)
+	for(var j=0;j<Object.values(subbuffers).length;++j)
 	{
-		var currentSubBuffer = Object.values(sbuffers)[j]
-		console.log(currentSubBuffer)
+		var currentSubBuffer = Object.values(subbuffers)[j]
 			
 			if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
 			
@@ -65,7 +64,6 @@ export async function initializeBuffer(name,sbuffers=[{}],includeInLayout=true){
 			});
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Texture){
 			
-			console.log(currentSubBuffer.texture)
 
 			buffers[name].bindGroupEntries.push({
 				resource: currentSubBuffer.texture.createView(),
@@ -78,8 +76,6 @@ export async function initializeBuffer(name,sbuffers=[{}],includeInLayout=true){
 			binding: j
 		});
 		
-		console.log(buffers[name].bindGroupLayoutEntries.length)
-
 		if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
 			buffers[name].bindGroupLayoutEntries[j].buffer = { type: "uniform" };
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Sampler){
@@ -89,8 +85,6 @@ export async function initializeBuffer(name,sbuffers=[{}],includeInLayout=true){
 		}
 		
 	}
-
-	console.log(buffers[name].bindGroupLayoutEntries)
 
 	buffers[name].bindGroupLayout = 
 		device.createBindGroupLayout({
@@ -317,7 +311,7 @@ export async function createPipelines(){
 				var idx = Array();	
 				var uvs = Array();
 
-				console.log(syn.scene.mainScene.gameObjects[x].name)
+				//console.log(syn.scene.mainScene.gameObjects[x].name)
 
 				var model = await syn.io.getJSON(syn.scene.mainScene.
 					gameObjects[x].components.renderer.modelSource);
