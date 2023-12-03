@@ -1,7 +1,7 @@
 {
-    "vertex": "./default.vert",
+    "vertex": "./src/shaders/vertex/default.vert",
     "defaultVertexCode": false,
-    "fragment": "./default.frag",
+    "fragment": "./src/shaders/fragment/default.frag",
     "defaultFragmentCode": false,
 
     "vertexBuffers": [{

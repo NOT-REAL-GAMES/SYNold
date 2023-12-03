@@ -9,7 +9,7 @@
 		},
 		"components":{
 			"renderer":{
-				"modelSource": "./cube.model",
+				"modelSource": "./src/models/cube.model",
 				"materials": [{
 					"name": "sampler",
 					"visibility": "fragment",
@@ -34,7 +34,7 @@
 		},
 		"components":{
 			"renderer":{
-				"modelSource": "./floor.model",
+				"modelSource": "./src/models/floor.model",
 				"materials": [{
 				}]		
 			}

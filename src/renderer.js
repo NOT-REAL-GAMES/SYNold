@@ -6,7 +6,7 @@ export var depthTexture;
 
 export var canvas;
 
-var pipelinePaths = ["./default.pipeline"]
+var pipelinePaths = ["./src/pipelines/default.pipeline"]
 var pipelines = {}
 
 import * as syn from './base.js'
@@ -249,7 +249,7 @@ export async function render(){
 
 		pass.setIndexBuffer(indexBuffers[name],'uint16')
 
-		pass.drawIndexed(totalidx[name],1);
+		pass.drawIndexed(totalIndex[name],1);
 	}
 
 	
@@ -268,7 +268,7 @@ var uvBuffers = [];
 
 var indexBuffers = [];
 
-var totalidx = [];
+var totalIndex = [];
 
 export async function createPipelines(){
 	
@@ -318,7 +318,7 @@ export async function createPipelines(){
 
 				var modelName = await syn.scene.mainScene.gameObjects[x].name;
 					
-				totalidx[modelName] = (0)
+				totalIndex[modelName] = (0)
 
 				for(var j=0;j<model.indices.length;){
 					var cur = model.indices[j];
@@ -330,7 +330,7 @@ export async function createPipelines(){
 					uvs.push(model.uv[cur*3+1])
 					uvs.push(model.uv[cur*3+2])
 
-					totalidx[modelName] += 1;
+					totalIndex[modelName] += 1;
 
 					idx.push(model.indices[j]);
 					++j;
