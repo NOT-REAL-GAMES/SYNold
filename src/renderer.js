@@ -100,6 +100,53 @@ export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true
 	buffers[name].includeInLayout = includeInLayout;
 }
 
+async function initializeMaterials(){
+	var obj = syn.scenes.mainScene.gameObjects;
+	for(var i=0;i<obj.length;++i){			
+		var bufParams = [];
+		if(obj[i].components.renderer.materials.length>0 && 
+			Object.keys(obj[i].components.renderer.materials[0]).length>0){
+			var materials = obj[i].components.renderer.materials;
+			console.log(materials)
+			var bufferName = obj[i].name;				
+			for(var j=0;j<materials.length;++j){
+				var bufParam = {};
+				bufParam.name = materials[j]["name"];
+				console.log(materials[j]["name"])
+
+				if(materials[j].size !== undefined){
+					bufParam.size = bufParam.size;
+				}
+				if(materials[j].usage !== undefined){
+					//TODO: implement all use cases
+					if(materials[j].usage == ["UNIFORM","COPY_DST"]){
+						bufParam.usage = 
+							GPUTextureUsage.UNIFORM|
+							GPUTextureUsage.COPY_DST;
+					}
+				}
+				if(materials[j].visibility=="fragment"){
+					bufParam.visibility = GPUShaderStage.FRAGMENT;
+				}
+				
+				bufParam.bindingLayoutType = materials[j].bindingLayoutType;
+				
+				if(materials[j].bindingLayoutType=="texture"){
+					if(materials[j].textureSrc === null){
+						bufParam.texture = await syn.utils.createSolidColorTexture(
+							materials[j].color[0], materials[j].color[1],
+							materials[j].color[2], materials[j].color[3]
+						)
+					}
+				}
+				bufParams.push(bufParam);
+			}
+			console.log(bufParams)
+			initializeBuffer(bufferName,bufParams,false);
+		}
+	}
+}
+
 export async function init(){
 
 	var adapter = await navigator.gpu.requestAdapter();
@@ -124,7 +171,6 @@ export async function init(){
 
 	//tHeRe'S gOt tO bE A bEtTeR wAy!!!
 
-	//name,size,usage,visibility,bindingLayoutType,texture=null
 	initializeBuffer(
 		"transform",[{
 			name: "buffer",
@@ -135,8 +181,6 @@ export async function init(){
 			bindingLayoutType: BindingLayoutType.Buffer
 		}]
 	);
-
-
 	
 	await initializeBuffer("default", [{
 		name: "sampler",
@@ -149,21 +193,13 @@ export async function init(){
 		texture: await syn.utils.createSolidColorTexture(1,0,0.2,1)
 	}]);
 	
-		//automate material initialization
+	//automate material initialization
 	//name of buffer corresponds to the
 	//name of the game object for now
 
 	//TODO: add custom sampler functionality
-	await initializeBuffer("cube", [{
-		name: "sampler",
-		visibility: GPUShaderStage.FRAGMENT,
-		bindingLayoutType: BindingLayoutType.Sampler
-	},{
-		name: "albedo",
-		visibility: GPUShaderStage.FRAGMENT,
-		bindingLayoutType: BindingLayoutType.Texture,
-		texture: await syn.utils.createSolidColorTexture(0,1,1,1)
-	}],false);
+
+	await initializeMaterials();
 
 	await createPipelines();
 	
@@ -305,18 +341,18 @@ export async function createPipelines(){
 			)
 
 			//find way to automate this
-			for(var x=0;x<syn.scene.mainScene.gameObjects.length;++x){
+			for(var x=0;x<syn.scenes.mainScene.gameObjects.length;++x){
 
 				var arr = Array();
 				var idx = Array();	
 				var uvs = Array();
 
-				//console.log(syn.scene.mainScene.gameObjects[x].name)
+				//console.log(syn.scenes.mainScene.gameObjects[x].name)
 
-				var model = await syn.io.getJSON(syn.scene.mainScene.
+				var model = await syn.io.getJSON(syn.scenes.mainScene.
 					gameObjects[x].components.renderer.modelSource);
 
-				var modelName = await syn.scene.mainScene.gameObjects[x].name;
+				var modelName = await syn.scenes.mainScene.gameObjects[x].name;
 					
 				totalIndex[modelName] = (0)
 
