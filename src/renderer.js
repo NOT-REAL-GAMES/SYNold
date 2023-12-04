@@ -15,6 +15,8 @@ var transformBuffer = {};
 
 var buffers = {};
 
+var materialsLoaded = [];
+
 const BindingLayoutType = {
 	Buffer: "buffer",
 	Sampler: "sampler",
@@ -48,8 +50,6 @@ export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true
 					offset: 0
 				};
 			}
-		
-
 
 		if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
 
@@ -101,41 +101,55 @@ export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true
 }
 
 async function initializeMaterials(){
-	var obj = syn.scenes.mainScene.gameObjects;
+	console.log(syn.scenes.gameObjects)
+	var obj = syn.scenes.gameObjects[0];
 	for(var i=0;i<obj.length;++i){			
 		var bufParams = [];
-		if(obj[i].components.renderer.materials.length>0 && 
-			Object.keys(obj[i].components.renderer.materials[0]).length>0){
+		if(obj[i].components.renderer.materials.length>0){
+			
 			var materials = obj[i].components.renderer.materials;
-			console.log(materials)
-			var bufferName = obj[i].name;				
-			for(var j=0;j<materials.length;++j){
-				var bufParam = {};
-				bufParam.name = materials[j]["name"];
-				console.log(materials[j]["name"])
 
-				if(materials[j].size !== undefined){
+			for(var j=0;j<materials.length;++j){
+				
+				if(Object.keys(materials[j]).length==0){
+					continue;
+				}
+				console.log(materials[j]);
+				var mat = await syn.io.getJSON("./src/materials/"+materials[j]+".material")
+								
+				materialsLoaded.push(materials[j]);
+
+				console.log(mat)
+
+				var bufferName = mat.name;
+
+				var bufParam = {};
+				bufParam.name = mat["name"];
+
+				if(mat.size !== undefined){
 					bufParam.size = bufParam.size;
 				}
-				if(materials[j].usage !== undefined){
+
+				if(mat.usage !== undefined){
 					//TODO: implement all use cases
-					if(materials[j].usage == ["UNIFORM","COPY_DST"]){
+					if(mat.usage == ["UNIFORM","COPY_DST"]){
 						bufParam.usage = 
 							GPUTextureUsage.UNIFORM|
 							GPUTextureUsage.COPY_DST;
 					}
 				}
-				if(materials[j].visibility=="fragment"){
+
+				if(mat.visibility=="fragment"){
 					bufParam.visibility = GPUShaderStage.FRAGMENT;
 				}
 				
-				bufParam.bindingLayoutType = materials[j].bindingLayoutType;
+				bufParam.bindingLayoutType = mat.bindingLayoutType;
 				
-				if(materials[j].bindingLayoutType=="texture"){
-					if(materials[j].textureSrc === null){
+				if(mat.bindingLayoutType=="texture"){
+					if(mat.textureSrc === null){
 						bufParam.texture = await syn.utils.createSolidColorTexture(
-							materials[j].color[0], materials[j].color[1],
-							materials[j].color[2], materials[j].color[3]
+							mat.color[0], mat.color[1],
+							mat.color[2], mat.color[3]
 						)
 					}
 				}
@@ -193,12 +207,6 @@ export async function init(){
 		texture: await syn.utils.createSolidColorTexture(1,0,0.2,1)
 	}]);
 	
-	//automate material initialization
-	//name of buffer corresponds to the
-	//name of the game object for now
-
-	//TODO: add custom sampler functionality
-
 	await initializeMaterials();
 
 	await createPipelines();
@@ -276,7 +284,7 @@ export async function render(){
 		if(buffers[name]!=null){
 			pass.setBindGroup(1,buffers[name].bindGroup);
 		} else{
-			console.log(name+" has no material, reverting to default.")
+			//console.log(name+" has no material, reverting to default.")
 			pass.setBindGroup(1,buffers["default"].bindGroup);
 		}
 

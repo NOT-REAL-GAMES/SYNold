@@ -10,18 +10,7 @@
 		"components":{
 			"renderer":{
 				"modelSource": "./src/models/cube.model",
-				"materials": [{
-					"name": "sampler",
-					"visibility": "fragment",
-					"bindingLayoutType": "sampler"
-				},{
-					"name": "albedo",
-					"visibility": "fragment",
-					"bindingLayoutType": "texture",
-					"textureSrc": null,
-					"color": [0,1,1,1]
-
-				}]
+				"materials": ["test"]
 			}
 		}
 	},{			
