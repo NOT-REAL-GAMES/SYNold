@@ -15,7 +15,7 @@ var transformBuffer = {};
 
 var buffers = {};
 
-var materialsLoaded = [];
+var materialsLoaded = {};
 
 const BindingLayoutType = {
 	Buffer: "buffer",
@@ -87,24 +87,27 @@ export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true
 	}
 
 	buffers[name].bindGroupLayout = 
-		device.createBindGroupLayout({
+		await device.createBindGroupLayout({
 			entries: buffers[name].bindGroupLayoutEntries
 		});
 
 	buffers[name].bindGroup = 
-		device.createBindGroup({
+		await device.createBindGroup({
 			layout: buffers[name].bindGroupLayout,
 			entries: buffers[name].bindGroupEntries
 		});
 
 	buffers[name].includeInLayout = includeInLayout;
+
+	return buffers[name].bindGroup
 }
 
 async function initializeMaterials(){
-	console.log(syn.scenes.gameObjects)
+	//console.log(syn.scenes.gameObjects)
 	var obj = syn.scenes.gameObjects[0];
 	for(var i=0;i<obj.length;++i){			
 		var bufParams = [];
+		//console.log(obj[i].components)
 		if(obj[i].components.renderer.materials.length>0){
 			
 			var materials = obj[i].components.renderer.materials;
@@ -114,49 +117,57 @@ async function initializeMaterials(){
 				if(Object.keys(materials[j]).length==0){
 					continue;
 				}
-				console.log(materials[j]);
 				var mat = await syn.io.getJSON("./src/materials/"+materials[j]+".material")
 								
-				materialsLoaded.push(materials[j]);
-
-				console.log(mat)
+				materialsLoaded[materials[j]] = materials[j];
 
 				var bufferName = mat.name;
-
-				var bufParam = {};
-				bufParam.name = mat["name"];
-
-				if(mat.size !== undefined){
-					bufParam.size = bufParam.size;
-				}
-
-				if(mat.usage !== undefined){
-					//TODO: implement all use cases
-					if(mat.usage == ["UNIFORM","COPY_DST"]){
-						bufParam.usage = 
-							GPUTextureUsage.UNIFORM|
-							GPUTextureUsage.COPY_DST;
-					}
-				}
-
-				if(mat.visibility=="fragment"){
-					bufParam.visibility = GPUShaderStage.FRAGMENT;
-				}
 				
-				bufParam.bindingLayoutType = mat.bindingLayoutType;
-				
-				if(mat.bindingLayoutType=="texture"){
-					if(mat.textureSrc === null){
-						bufParam.texture = await syn.utils.createSolidColorTexture(
-							mat.color[0], mat.color[1],
-							mat.color[2], mat.color[3]
-						)
+				//var bufParam = [{}];				
+
+				for(var k=0;k<mat.buffers.length;++k){	
+					bufParams.push({})
+					var bufParam = bufParams[k];
+					
+					var buf = mat.buffers[k]
+
+					bufParam.name = buf["name"];
+
+					console.log(buf)
+
+					if(buf.size !== undefined){
+						bufParam.size = buf.size;
 					}
+
+					if(buf.usage !== undefined){
+						//TODO: implement all use cases
+						if(buf.usage == ["UNIFORM","COPY_DST"]){
+							bufParam.usage = 
+								GPUTextureUsage.UNIFORM|
+								GPUTextureUsage.COPY_DST;
+						}
+					}
+
+					if(buf.visibility=="fragment"){
+						bufParam.visibility = GPUShaderStage.FRAGMENT;
+					}
+					
+
+					bufParam.bindingLayoutType = buf.bindingLayoutType;
+					
+					if(buf.bindingLayoutType=="texture"){
+						if(buf.textureSrc === null){
+							bufParam.texture = await syn.utils.createSolidColorTexture(
+								buf.color[0], buf.color[1],
+								buf.color[2], buf.color[3]
+							)
+						}
+					}
+				console.log(bufParam)
 				}
-				bufParams.push(bufParam);
 			}
 			console.log(bufParams)
-			initializeBuffer(bufferName,bufParams,false);
+			materialsLoaded[materials[0]] = await initializeBuffer(bufferName,bufParams,false);
 		}
 	}
 }
@@ -277,23 +288,24 @@ export async function render(){
 
 	pass.setBindGroup(0,buffers["transform"].bindGroup);
 
-	for(var a=0;a<Object.values(vertexBuffers).length;++a){
+	for(var a=0;a<syn.scenes.gameObjects[0].length;++a){
 
-		var name = Object.keys(vertexBuffers)[a];
+		var obj = syn.scenes.gameObjects[0][a];
+		var ren = obj.components.renderer;
 
-		if(buffers[name]!=null){
-			pass.setBindGroup(1,buffers[name].bindGroup);
+		if(Object.keys(ren.materials[0]).length>0){
+			pass.setBindGroup(1,materialsLoaded[ren.materials[0]]);
 		} else{
 			//console.log(name+" has no material, reverting to default.")
 			pass.setBindGroup(1,buffers["default"].bindGroup);
 		}
 
-		pass.setVertexBuffer(0,vertexBuffers[name]);
-		pass.setVertexBuffer(1,uvBuffers[name]);
+		pass.setVertexBuffer(0,ren.vertexBuffers.unmodified);
+		pass.setVertexBuffer(1,ren.uvBuffer);
 
-		pass.setIndexBuffer(indexBuffers[name],'uint16')
+		pass.setIndexBuffer(ren.indexBuffer,'uint16')
 
-		pass.drawIndexed(totalIndex[name],1);
+		pass.drawIndexed(ren.indexCount,1);
 	}
 
 	
@@ -314,6 +326,48 @@ var indexBuffers = [];
 
 var totalIndex = [];
 
+export async function getBuffersFromGameObjects(){
+	for(var x=0;x<syn.scenes.gameObjects[0].length;++x){
+
+		var vtx = Array();
+		var idx = Array();	
+		var uvs = Array();
+
+		//console.log(syn.scenes.mainScene.gameObjects[x].name)
+
+		var obj = syn.scenes.gameObjects[0][x]
+		var ren = obj.components.renderer;
+
+		var model = await syn.io.getJSON(ren.modelSource);
+
+		var modelName = await obj.name;
+			
+		ren.indexCount = (0)
+
+		for(var j=0;j<model.indices.length;){
+			var cur = model.indices[j];
+			vtx.push(model.positions[cur*3])
+			vtx.push(model.positions[cur*3+1])
+			vtx.push(model.positions[cur*3+2])
+
+			uvs.push(model.uv[cur*3])
+			uvs.push(model.uv[cur*3+1])
+			uvs.push(model.uv[cur*3+2])
+
+			ren.indexCount += 1;
+
+			idx.push(model.indices[j]);
+			++j;
+		}
+
+		ren.vertexBuffers={};
+		ren.vertexBuffers.unmodified=(await (syn.utils.createBuffer(vtx,GPUBufferUsage.VERTEX)));
+		ren.indexBuffer=(await (syn.utils.createBuffer(idx,GPUBufferUsage.INDEX)))
+		ren.uvBuffer=(await (syn.utils.createBuffer(uvs,GPUBufferUsage.VERTEX)))
+
+	}
+}
+
 export async function createPipelines(){
 	
 	for(var i = 0; i<pipelinePaths.length;++i){
@@ -325,8 +379,6 @@ export async function createPipelines(){
 				bindGroupLayouts.push(Object.values(buffers)[j].bindGroupLayout)
 			}
 		}
-
-		console.log(bindGroupLayouts)
 		
 		var layout = device.createPipelineLayout({
 			bindGroupLayouts: bindGroupLayouts 
@@ -338,7 +390,6 @@ export async function createPipelines(){
 
 		//create buffers found in shader
 		for(var i=0;i<shader.vertexBuffers.length;++i){
-			console.log(shader.vertexBuffers[i])
 
 			vertexBufferDescs.push(
 				{
@@ -349,46 +400,8 @@ export async function createPipelines(){
 			)
 
 			//find way to automate this
-			for(var x=0;x<syn.scenes.mainScene.gameObjects.length;++x){
-
-				var arr = Array();
-				var idx = Array();	
-				var uvs = Array();
-
-				//console.log(syn.scenes.mainScene.gameObjects[x].name)
-
-				var model = await syn.io.getJSON(syn.scenes.mainScene.
-					gameObjects[x].components.renderer.modelSource);
-
-				var modelName = await syn.scenes.mainScene.gameObjects[x].name;
-					
-				totalIndex[modelName] = (0)
-
-				for(var j=0;j<model.indices.length;){
-					var cur = model.indices[j];
-					arr.push(model.positions[cur*3])
-					arr.push(model.positions[cur*3+1])
-					arr.push(model.positions[cur*3+2])
-
-					uvs.push(model.uv[cur*3])
-					uvs.push(model.uv[cur*3+1])
-					uvs.push(model.uv[cur*3+2])
-
-					totalIndex[modelName] += 1;
-
-					idx.push(model.indices[j]);
-					++j;
-				}
-
-				vertexBuffers[modelName]=(await (syn.utils.createBuffer(arr,GPUBufferUsage.VERTEX)));
-				indexBuffers[modelName]=(await (syn.utils.createBuffer(idx,GPUBufferUsage.INDEX)))
-				uvBuffers[modelName]=(await (syn.utils.createBuffer(uvs,GPUBufferUsage.VERTEX)))
-	
-			}
-			
+			await getBuffersFromGameObjects();
 		}
-
-		console.log(vertexBuffers)
 
 		var vertex = device.createShaderModule({
 			code:await syn.io.getRaw(shader.vertex)});
