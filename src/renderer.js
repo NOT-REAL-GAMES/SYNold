@@ -368,7 +368,7 @@ export async function getBuffersFromGameObjects(){
 
 		
 		//calculate normals
-			if(true){ //no smoothing between polygons
+			if(false){ //no smoothing between polygons
 			for(var j=0;j<model.indices.length;j+=3){
 				var cur = model.indices[j];
 				var cur2 = model.indices[j+1];
@@ -416,6 +416,65 @@ export async function getBuffersFromGameObjects(){
 				nml.push(n[2])
 			}
 		} else {
+			//for each point in the mesh
+			var pts = [];
+			for(var j=0;j<model.positions.length;++j){					
+				var bla = []
+
+				//get every other point that connects to that mesh
+				for(var k=0;k<model.indices.length;k+=3){
+					var cur = model.indices[k];
+					var cur2 = model.indices[k+1];
+					var cur3 = model.indices[k+2];
+	
+					if(cur==j||cur2==j||cur3==j){
+						var v1 = syn.math.vec3.set(
+							model.positions[cur*3],
+							model.positions[cur*3+1],
+							model.positions[cur*3+2],
+						);
+		
+						var v2 = syn.math.vec3.set(
+							model.positions[(cur2)*3],
+							model.positions[(cur2)*3+1],
+							model.positions[(cur2)*3+2],
+						);
+		
+						var v3 = syn.math.vec3.set(
+							model.positions[(cur3)*3],
+							model.positions[(cur3)*3+1],
+							model.positions[(cur3)*3+2],
+						);
+
+
+		
+						var u = syn.math.vec3.subtract(v2,v1);
+						var v = syn.math.vec3.subtract(v3,v1);
+		
+						var n = syn.math.vec3.cross(u,v)
+
+						n=syn.math.vec3.normalize(n)
+
+						n = syn.math.vec3.divide(n,syn.math.vec3.fromValues(-2,-2,-2));
+						n = syn.math.vec3.add(n,syn.math.vec3.fromValues(.5,.5,.5))
+		
+
+						bla.push(n)
+					}
+				}
+
+				if(bla.length>0){
+					pts.push(syn.math.vec3.average(bla));
+				}
+				console.log(pts)
+
+			}
+			for(var j=0;j<model.indices.length;++j){
+				console.log(pts[model.indices[j]])
+				nml.push(pts[model.indices[j]][0])
+				nml.push(pts[model.indices[j]][1])
+				nml.push(pts[model.indices[j]][2])
+			}
 
 		}
 

@@ -34,6 +34,18 @@ export function clone(a) {
 	return out;
 }
 
+export function average(a){
+	var out = create();
+	for(var i=0;i<a.length;++i){
+		out[0] += a[i][0];
+		out[1] += a[i][1];
+		out[2] += a[i][2];
+	}
+	out = divide(out,fromValues(a.length,a.length,a.length))
+	
+	return out;
+}
+
 /**
  * Calculates the length of a vec3
  *
