@@ -196,15 +196,16 @@ export async function init(){
 
 	//tHeRe'S gOt tO bE A bEtTeR wAy!!!
 
-	initializeBuffer(
+	await initializeBuffer(
 		"transform",[{
-			name: "buffer",
-			size: 4*16,
+			name: "projMatrix",
+			size: 8*16,
 			usage: GPUBufferUsage.UNIFORM | 
 					GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.VERTEX,
 			bindingLayoutType: BindingLayoutType.Buffer
-		}]
+		}
+	]
 	);
 	
 	await initializeBuffer("default", [{
@@ -280,9 +281,11 @@ export async function render(){
 	});
 
 	var projmat = syn.math.mat4.perspective(2, canvas.clientWidth/canvas.clientHeight, 0.01, 1000000.0);
-	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/1000),0,-10]);
+	projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/1000)
+	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/1000)*10,0,Math.cos(Date.now()/1000)*10]);
 	
-	device.queue.writeBuffer(buffers["transform"].buffer["buffer"], 0, projmat);
+	device.queue.writeBuffer(buffers["transform"].buffer["projMatrix"], 0, projmat);
+	device.queue.writeBuffer(buffers["transform"].buffer["projMatrix"], 64, syn.math.mat4.translate(0,50,0));
 
 	pass.setPipeline(pipelines["default"]);
 
@@ -302,6 +305,7 @@ export async function render(){
 
 		pass.setVertexBuffer(0,ren.vertexBuffers.unmodified);
 		pass.setVertexBuffer(1,ren.uvBuffer);
+		pass.setVertexBuffer(2,ren.normalBuffer);
 
 		pass.setIndexBuffer(ren.indexBuffer,'uint16')
 
@@ -332,6 +336,7 @@ export async function getBuffersFromGameObjects(){
 		var vtx = Array();
 		var idx = Array();	
 		var uvs = Array();
+		var nml = Array();
 
 		//console.log(syn.scenes.mainScene.gameObjects[x].name)
 
@@ -346,9 +351,10 @@ export async function getBuffersFromGameObjects(){
 
 		for(var j=0;j<model.indices.length;){
 			var cur = model.indices[j];
+			
 			vtx.push(model.positions[cur*3])
-			vtx.push(model.positions[cur*3+1])
-			vtx.push(model.positions[cur*3+2])
+			vtx.push(model.positions[(cur*3)+1])
+			vtx.push(model.positions[(cur*3)+2])
 
 			uvs.push(model.uv[cur*3])
 			uvs.push(model.uv[cur*3+1])
@@ -356,15 +362,63 @@ export async function getBuffersFromGameObjects(){
 
 			ren.indexCount += 1;
 
-			idx.push(model.indices[j]);
+			idx.push(j);
 			++j;
+		}
+
+		//calculate normals
+		for(var j=0;j<model.indices.length;j+=3){
+			var cur = model.indices[j];
+			var cur2 = model.indices[j+1];
+			var cur3 = model.indices[j+2];
+
+			//TODO: DRY!!!
+			var v1 = syn.math.vec3.set(
+				model.positions[cur*3],
+				model.positions[cur*3+1],
+				model.positions[cur*3+2],
+			);
+
+			var v2 = syn.math.vec3.set(
+				model.positions[(cur2)*3],
+				model.positions[(cur2)*3+1],
+				model.positions[(cur2)*3+2],
+			);
+
+			var v3 = syn.math.vec3.set(
+				model.positions[(cur3)*3],
+				model.positions[(cur3)*3+1],
+				model.positions[(cur3)*3+2],
+			);
+
+			var u = syn.math.vec3.subtract(v2,v1);
+			var v = syn.math.vec3.subtract(v3,v1);
+
+			var n = syn.math.vec3.cross(u,v)
+
+			n = syn.math.vec3.normalize(n)
+
+			n = syn.math.vec3.divide(n,syn.math.vec3.fromValues(-2,-2,-2));
+			n = syn.math.vec3.add(n,syn.math.vec3.fromValues(.5,.5,.5))
+
+			nml.push(n[0])
+			nml.push(n[1])
+			nml.push(n[2])
+
+			nml.push(n[0])
+			nml.push(n[1])
+			nml.push(n[2])
+
+			nml.push(n[0])
+			nml.push(n[1])
+			nml.push(n[2])
 		}
 
 		ren.vertexBuffers={};
 		ren.vertexBuffers.unmodified=(await (syn.utils.createBuffer(vtx,GPUBufferUsage.VERTEX)));
 		ren.indexBuffer=(await (syn.utils.createBuffer(idx,GPUBufferUsage.INDEX)))
 		ren.uvBuffer=(await (syn.utils.createBuffer(uvs,GPUBufferUsage.VERTEX)))
-
+		ren.normalBuffer=(await (syn.utils.createBuffer(nml,GPUBufferUsage.VERTEX)))
 	}
 }
 
@@ -398,10 +452,10 @@ export async function createPipelines(){
 					stepMode: shader.vertexBuffers[i].stepMode
 				}
 			)
-
 			//find way to automate this
-			await getBuffersFromGameObjects();
 		}
+		
+		await getBuffersFromGameObjects();
 
 		var vertex = device.createShaderModule({
 			code:await syn.io.getRaw(shader.vertex)});

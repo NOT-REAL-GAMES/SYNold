@@ -22,5 +22,14 @@
         }],
         "arrayStride": 8,
         "stepMode": "vertex"
+    },{
+        "target": "normals",
+        "attributes": [{
+            "shaderLocation": 2,
+            "offset": 0,
+            "format": "float32x3"
+        }],
+        "arrayStride": 12,
+        "stepMode": "vertex"
     }]
 }
