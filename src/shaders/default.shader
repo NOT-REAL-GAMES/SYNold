@@ -31,5 +31,15 @@
         }],
         "arrayStride": 12,
         "stepMode": "vertex"
-    }]
+    },{
+        "target": "tangents",
+        "attributes": [{
+            "shaderLocation": 3,
+            "offset": 0,
+            "format": "float32x3"
+        }],
+        "arrayStride": 12,
+        "stepMode": "vertex"
+    }
+]
 }

@@ -82,8 +82,13 @@ export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true
 			buffers[name].bindGroupLayoutEntries[j].sampler = { type: "filtering" };
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Texture){
 			buffers[name].bindGroupLayoutEntries[j].texture = { type: "float" };
+			//TODO: if(currentSubBuffer.textureSampleType===TextureSampleType.Depth)
+			//TODO: if(currentSubBuffer.textureSampleType===TextureSampleType.UnfilterableFloat)
+		
 		}
 		
+
+
 	}
 
 	buffers[name].bindGroupLayout = 
@@ -199,12 +204,19 @@ export async function init(){
 	await initializeBuffer(
 		"transform",[{
 			name: "projMatrix",
-			size: 8*16,
+			size: 4*16,
 			usage: GPUBufferUsage.UNIFORM | 
 					GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.VERTEX,
 			bindingLayoutType: BindingLayoutType.Buffer
-		}
+		},
+		{name: "rotMatrix",
+		size: 4*16,
+		usage: GPUBufferUsage.UNIFORM | 
+				GPUBufferUsage.COPY_DST,
+		visibility: GPUShaderStage.VERTEX,
+		bindingLayoutType: BindingLayoutType.Buffer}
+
 	]
 	);
 	
@@ -243,6 +255,7 @@ export async function init(){
 var colorAttachment;
 var depthAttachment;
 
+
 export async function render(){	
 	canvas.width = canvas.clientWidth;
 	canvas.height = canvas.clientHeight;
@@ -260,7 +273,7 @@ export async function render(){
 
 	colorAttachment = {
 		view: contextTexture.createView(),
-		clearValue: {r:0,g:0,b:0,a:1},
+		clearValue: {r:0.5,g:0.5,b:1,a:1},
 		loadOp: 'clear',
 		storeOp: 'store'
 	};
@@ -281,11 +294,17 @@ export async function render(){
 	});
 
 	var projmat = syn.math.mat4.perspective(2, canvas.clientWidth/canvas.clientHeight, 0.01, 1000000.0);
+	var rotmat = syn.math.mat4.create();
+
 	projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/1000)
+
+	rotmat = syn.math.mat4.invert(rotmat);
+	rotmat = syn.math.mat4.transpose(rotmat);
+
 	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/1000)*10,0,Math.cos(Date.now()/1000)*10]);
 	
 	device.queue.writeBuffer(buffers["transform"].buffer["projMatrix"], 0, projmat);
-	device.queue.writeBuffer(buffers["transform"].buffer["projMatrix"], 64, syn.math.mat4.translate(0,50,0));
+	device.queue.writeBuffer(buffers["transform"].buffer["rotMatrix"], 0, rotmat);
 
 	pass.setPipeline(pipelines["default"]);
 
@@ -305,14 +324,13 @@ export async function render(){
 
 		pass.setVertexBuffer(0,ren.vertexBuffers.unmodified);
 		pass.setVertexBuffer(1,ren.uvBuffer);
-		pass.setVertexBuffer(2,ren.normalBuffer);
+		pass.setVertexBuffer(2,ren.faceNormalBuffer);
+		pass.setVertexBuffer(3,ren.vertexNormalBuffer);
 
 		pass.setIndexBuffer(ren.indexBuffer,'uint16')
 
 		pass.drawIndexed(ren.indexCount,1);
 	}
-
-	
 
 	pass.end();
 
@@ -337,6 +355,7 @@ export async function getBuffersFromGameObjects(){
 		var idx = Array();	
 		var uvs = Array();
 		var nml = Array();
+		var tng = Array();
 
 		//console.log(syn.scenes.mainScene.gameObjects[x].name)
 
@@ -368,7 +387,7 @@ export async function getBuffersFromGameObjects(){
 
 		
 		//calculate normals
-			if(false){ //no smoothing between polygons
+			if(false){ //FACE NORMALS
 			for(var j=0;j<model.indices.length;j+=3){
 				var cur = model.indices[j];
 				var cur2 = model.indices[j+1];
@@ -415,18 +434,19 @@ export async function getBuffersFromGameObjects(){
 				nml.push(n[1])
 				nml.push(n[2])
 			}
-		} else {
-			//for each point in the mesh
+		}// else { // VERTEX NORMALS
+			//for each vertex in the mesh
 			var pts = [];
 			for(var j=0;j<model.positions.length;++j){					
 				var bla = []
 
-				//get every other point that connects to that mesh
+				//get every other vertex that connects to that mesh
 				for(var k=0;k<model.indices.length;k+=3){
 					var cur = model.indices[k];
 					var cur2 = model.indices[k+1];
 					var cur3 = model.indices[k+2];
 	
+					//check if triangle has vertex
 					if(cur==j||cur2==j||cur3==j){
 						var v1 = syn.math.vec3.set(
 							model.positions[cur*3],
@@ -446,11 +466,10 @@ export async function getBuffersFromGameObjects(){
 							model.positions[(cur3)*3+2],
 						);
 
-
-		
 						var u = syn.math.vec3.subtract(v2,v1);
 						var v = syn.math.vec3.subtract(v3,v1);
 		
+						//calculate normal of triangle
 						var n = syn.math.vec3.cross(u,v)
 
 						n=syn.math.vec3.normalize(n)
@@ -464,25 +483,26 @@ export async function getBuffersFromGameObjects(){
 				}
 
 				if(bla.length>0){
+					//get average of normals and assign it to the vertex
 					pts.push(syn.math.vec3.average(bla));
 				}
-				console.log(pts)
 
 			}
 			for(var j=0;j<model.indices.length;++j){
-				console.log(pts[model.indices[j]])
-				nml.push(pts[model.indices[j]][0])
-				nml.push(pts[model.indices[j]][1])
-				nml.push(pts[model.indices[j]][2])
+				tng.push(pts[model.indices[j]][0])
+				tng.push(pts[model.indices[j]][1])
+				tng.push(pts[model.indices[j]][2])
 			}
 
-		}
+		//}
 
 		ren.vertexBuffers={};
 		ren.vertexBuffers.unmodified=(await (syn.utils.createBuffer(vtx,GPUBufferUsage.VERTEX)));
 		ren.indexBuffer=(await (syn.utils.createBuffer(idx,GPUBufferUsage.INDEX)))
 		ren.uvBuffer=(await (syn.utils.createBuffer(uvs,GPUBufferUsage.VERTEX)))
-		ren.normalBuffer=(await (syn.utils.createBuffer(nml,GPUBufferUsage.VERTEX)))
+		ren.faceNormalBuffer=(await (syn.utils.createBuffer(nml,GPUBufferUsage.VERTEX)))
+		ren.vertexNormalBuffer=(await (syn.utils.createBuffer(tng,GPUBufferUsage.VERTEX)))
+		
 	}
 }
 
