@@ -10,9 +10,12 @@ struct GBufferOutput {
 
 @fragment
 fn main(
-    @location(0) uv : vec2<f32>,@location(1) normals : vec3<f32>) -> @location(0) vec4f {
+    @location(0) uv : vec2<f32>,
+    @location(1) faceNormals : vec3<f32>,
+    @location(2) vertexNormals : vec3<f32>
+    ) -> @location(0) vec4f {
     
     //return textureSample(tex, smp, uv);
 
-    return vec4(normalize(normals), 1.0);
+    return vec4(normalize(vertexNormals), 1.0);
 }

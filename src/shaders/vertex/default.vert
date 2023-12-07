@@ -10,8 +10,8 @@ struct Uniforms {
 }
 
 
-@group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(0) @binding(1) var<uniform> rotMatrix: mat4x4<f32>;
+@group(2) @binding(0) var<uniform> uniforms: Uniforms;
+@group(0) @binding(0) var<uniform> modelMatrix: mat4x4<f32>;
 
 @vertex
 fn main(@location(0) inPos: vec3f, @location(2) faceNormals : vec3<f32>,
@@ -19,8 +19,9 @@ fn main(@location(0) inPos: vec3f, @location(2) faceNormals : vec3<f32>,
 
 ) -> VSOut {
     var vsOut: VSOut;
-    vsOut.Position = (uniforms.projMatrix)*vec4f(inPos, 1);
-    vsOut.faceNormals = normalize(rotMatrix*vec4f(vertexNormals,1.0)).xyz;
+    let worldPos = (modelMatrix * vec4(inPos,1.0)).xyz;
+    vsOut.Position = (uniforms.projMatrix)*vec4f(worldPos, 1);
+    vsOut.vertexNormals = normalize(vec4f(vertexNormals,1.0)).xyz;
     return vsOut;
 }
 		

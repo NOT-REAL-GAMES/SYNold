@@ -107,6 +107,22 @@ export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true
 	return buffers[name].bindGroup
 }
 
+async function initializeTransforms(){
+	var obj = syn.scenes.gameObjects[0];
+	for(var i=0;i<obj.length;++i){			
+
+		await initializeBuffer(
+			obj[i].name,
+			[{name: "modelMatrix",
+			size: 4*16,
+			usage: GPUBufferUsage.UNIFORM | 
+					GPUBufferUsage.COPY_DST,
+			visibility: GPUShaderStage.VERTEX,
+			bindingLayoutType: BindingLayoutType.Buffer}],i==0?true:false
+		)
+	}
+}
+
 async function initializeMaterials(){
 	//console.log(syn.scenes.gameObjects)
 	var obj = syn.scenes.gameObjects[0];
@@ -209,15 +225,8 @@ export async function init(){
 					GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.VERTEX,
 			bindingLayoutType: BindingLayoutType.Buffer
-		},
-		{name: "rotMatrix",
-		size: 4*16,
-		usage: GPUBufferUsage.UNIFORM | 
-				GPUBufferUsage.COPY_DST,
-		visibility: GPUShaderStage.VERTEX,
-		bindingLayoutType: BindingLayoutType.Buffer}
-
-	]
+		}
+	],true
 	);
 	
 	await initializeBuffer("default", [{
@@ -232,6 +241,8 @@ export async function init(){
 	}]);
 	
 	await initializeMaterials();
+
+	await initializeTransforms();
 
 	await createPipelines();
 	
@@ -294,26 +305,47 @@ export async function render(){
 	});
 
 	var projmat = syn.math.mat4.perspective(2, canvas.clientWidth/canvas.clientHeight, 0.01, 1000000.0);
-	var rotmat = syn.math.mat4.create();
 
-	projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/1000)
+	//projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/1000)
 
-	rotmat = syn.math.mat4.invert(rotmat);
-	rotmat = syn.math.mat4.transpose(rotmat);
 
-	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/1000)*10,0,Math.cos(Date.now()/1000)*10]);
+	//rotmat = syn.math.mat4.invert(rotmat);
+	//rotmat = syn.math.mat4.transpose(rotmat);
+
+	projmat = syn.math.mat4.translate(projmat,[/*Math.sin(Date.now()/1000)*10*/0,0,/*Math.cos(Date.now()/1000)*10*/-10]);
 	
 	device.queue.writeBuffer(buffers["transform"].buffer["projMatrix"], 0, projmat);
-	device.queue.writeBuffer(buffers["transform"].buffer["rotMatrix"], 0, rotmat);
 
 	pass.setPipeline(pipelines["default"]);
 
-	pass.setBindGroup(0,buffers["transform"].bindGroup);
 
 	for(var a=0;a<syn.scenes.gameObjects[0].length;++a){
 
+
 		var obj = syn.scenes.gameObjects[0][a];
-		var ren = obj.components.renderer;
+		var ren = obj.components.renderer;		
+		
+		var rotmat = syn.math.mat4.fromRotationTranslationScale(
+			syn.math.quat.fromEuler(
+				obj.transform.rotation[0],
+				obj.transform.rotation[1],
+				obj.transform.rotation[2]),
+			syn.math.vec3.fromValues(
+				obj.transform.position[0],
+				obj.transform.position[1],
+				obj.transform.position[2]
+			),
+			syn.math.vec3.fromValues(
+				obj.transform.scale[0],
+				obj.transform.scale[1],
+				obj.transform.scale[2],
+				
+			));
+
+		device.queue.writeBuffer(buffers[obj.name].buffer["modelMatrix"], 0, rotmat);
+
+		pass.setBindGroup(0,buffers[obj.name].bindGroup);
+		pass.setBindGroup(2,buffers["transform"].bindGroup);
 
 		if(Object.keys(ren.materials[0]).length>0){
 			pass.setBindGroup(1,materialsLoaded[ren.materials[0]]);

@@ -11,8 +11,8 @@ import * as glMatrix from "./common.js";
  * @returns {vec3} a new 3D vector
  */
 export function create() {
-	let out = new glMatrix.ARRAY_TYPE(3);
-	if (glMatrix.ARRAY_TYPE != Float32Array) {
+	let out = new Float32Array(3);
+	if (Float32Array != Float32Array) {
 	out[0] = 0;
 	out[1] = 0;
 	out[2] = 0;
@@ -27,7 +27,7 @@ export function create() {
  * @returns {vec3} a new 3D vector
  */
 export function clone(a) {
-	var out = new glMatrix.ARRAY_TYPE(3);
+	var out = new Float32Array(3);
 	out[0] = a[0];
 	out[1] = a[1];
 	out[2] = a[2];
@@ -68,7 +68,7 @@ export function length(a) {
  * @returns {vec3} a new 3D vector
  */
 export function fromValues(x, y, z) {
-	let out = new glMatrix.ARRAY_TYPE(3);
+	let out = new Float32Array(3);
 	out[0] = x;
 	out[1] = y;
 	out[2] = z;
