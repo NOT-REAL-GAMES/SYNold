@@ -6,14 +6,14 @@ export var depthTexture;
 
 export var canvas;
 
-var pipelinePaths = ["./src/pipelines/default.pipeline"]
+var pipelinePaths = ["./src/pipelines/deferred.pipeline","./src/pipelines/gbuffer.pipeline"]
 var pipelines = {}
 
 import * as syn from './base.js'
 
 var transformBuffer = {};
 
-var buffers = {};
+var buffers = [{}];
 
 var materialsLoaded = {};
 
@@ -22,16 +22,26 @@ const BindingLayoutType = {
 	Sampler: "sampler",
 	Texture: "texture"
 }
+
+const TextureSampleType = {
+	Depth: "depth",
+	Float: "float",
+	UnfilterableFloat: "unfilterable-float",
+}
+
 var sampler;
 
-export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true){
-	buffers[name] = {};
+export async function initializeBuffer(name,subbuffers=[{}],index,includeInLayout=true){
+	for(var i=buffers.length;i<index+1;++i){
+		buffers.push({})
+	}
+	buffers[index][name] = {};
 
-	buffers[name].buffer = {};
-	buffers[name].binding = {};
+	buffers[index][name].buffer = {};
+	buffers[index][name].binding = {};
 
-	buffers[name].bindGroupEntries = [];
-	buffers[name].bindGroupLayoutEntries = [];
+	buffers[index][name].bindGroupEntries = [];
+	buffers[index][name].bindGroupLayoutEntries = [];
 
 	for(var j=0;j<Object.values(subbuffers).length;++j)
 	{
@@ -39,13 +49,13 @@ export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true
 			
 			if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
 			
-				buffers[name].buffer[currentSubBuffer.name] = device.createBuffer({
+				buffers[index][name].buffer[currentSubBuffer.name] = device.createBuffer({
 					usage: currentSubBuffer.usage,
 					size: currentSubBuffer.size
 				});
 
-				buffers[name].binding[currentSubBuffer.name] = {
-					buffer: buffers[name].buffer[currentSubBuffer.name],
+				buffers[index][name].binding[currentSubBuffer.name] = {
+					buffer: buffers[index][name].buffer[currentSubBuffer.name],
 					size: currentSubBuffer.size,
 					offset: 0
 				};
@@ -53,58 +63,57 @@ export async function initializeBuffer(name,subbuffers=[{}],includeInLayout=true
 
 		if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
 
-			buffers[name].bindGroupEntries.push({
-				resource: buffers[name].binding[currentSubBuffer.name],
+			buffers[index][name].bindGroupEntries.push({
+				resource: buffers[index][name].binding[currentSubBuffer.name],
 				binding: j
 			});
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Sampler){
-			buffers[name].bindGroupEntries.push({
+			buffers[index][name].bindGroupEntries.push({
 				resource: sampler,
 				binding: j
 			});
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Texture){
 			
 
-			buffers[name].bindGroupEntries.push({
-				resource: currentSubBuffer.texture.createView(),
+			buffers[index][name].bindGroupEntries.push({
+				resource: currentSubBuffer.texture,
 				binding: j
 			});
 		}
 
-		await buffers[name].bindGroupLayoutEntries.push({
+		await buffers[index][name].bindGroupLayoutEntries.push({
 			visibility: currentSubBuffer.visibility,
 			binding: j
 		});
 		
 		if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
-			buffers[name].bindGroupLayoutEntries[j].buffer = { type: "uniform" };
+			buffers[index][name].bindGroupLayoutEntries[j].buffer = { type: "uniform" };
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Sampler){
-			buffers[name].bindGroupLayoutEntries[j].sampler = { type: "filtering" };
+			buffers[index][name].bindGroupLayoutEntries[j].sampler = { type: "filtering" };
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Texture){
-			buffers[name].bindGroupLayoutEntries[j].texture = { type: "float" };
-			//TODO: if(currentSubBuffer.textureSampleType===TextureSampleType.Depth)
-			//TODO: if(currentSubBuffer.textureSampleType===TextureSampleType.UnfilterableFloat)
-		
+			buffers[index][name].bindGroupLayoutEntries[j].texture = { sampleType: currentSubBuffer.textureSampleType };		
 		}
 		
 
 
 	}
 
-	buffers[name].bindGroupLayout = 
+	console.log(buffers[index][name].bindGroupLayoutEntries)
+
+	buffers[index][name].bindGroupLayout = 
 		await device.createBindGroupLayout({
-			entries: buffers[name].bindGroupLayoutEntries
+			entries: buffers[index][name].bindGroupLayoutEntries
 		});
 
-	buffers[name].bindGroup = 
+	buffers[index][name].bindGroup = 
 		await device.createBindGroup({
-			layout: buffers[name].bindGroupLayout,
-			entries: buffers[name].bindGroupEntries
+			layout: buffers[index][name].bindGroupLayout,
+			entries: buffers[index][name].bindGroupEntries
 		});
 
-	buffers[name].includeInLayout = includeInLayout;
+	buffers[index][name].includeInLayout = includeInLayout;
 
-	return buffers[name].bindGroup
+	return buffers[index][name].bindGroup
 }
 
 async function initializeTransforms(){
@@ -118,7 +127,8 @@ async function initializeTransforms(){
 			usage: GPUBufferUsage.UNIFORM | 
 					GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.VERTEX,
-			bindingLayoutType: BindingLayoutType.Buffer}],i==0?true:false
+			bindingLayoutType: BindingLayoutType.Buffer
+		}],1,i==0?true:false
 		)
 	}
 }
@@ -176,19 +186,22 @@ async function initializeMaterials(){
 
 					bufParam.bindingLayoutType = buf.bindingLayoutType;
 					
+					bufParam.textureSampleType = buf.textureSampleType;
+					
 					if(buf.bindingLayoutType=="texture"){
 						if(buf.textureSrc === null){
-							bufParam.texture = await syn.utils.createSolidColorTexture(
+							var bla = await syn.utils.createSolidColorTexture(
 								buf.color[0], buf.color[1],
 								buf.color[2], buf.color[3]
 							)
+							bufParam.texture = bla.createView()
 						}
 					}
 				console.log(bufParam)
 				}
 			}
 			console.log(bufParams)
-			materialsLoaded[materials[0]] = await initializeBuffer(bufferName,bufParams,false);
+			materialsLoaded[materials[0]] = await initializeBuffer(bufferName,bufParams,1,false);
 		}
 	}
 }
@@ -226,8 +239,22 @@ export async function init(){
 			visibility: GPUShaderStage.VERTEX,
 			bindingLayoutType: BindingLayoutType.Buffer
 		}
-	],true
+	],1,true
 	);
+
+	await initializeBuffer(
+		"transform",[{
+			name: "projMatrix",
+			size: 4*16,
+			usage: GPUBufferUsage.UNIFORM | 
+					GPUBufferUsage.COPY_DST,
+			visibility: GPUShaderStage.FRAGMENT,
+			bindingLayoutType: BindingLayoutType.Buffer
+		}
+	],0,true
+	);
+
+	var bla = await syn.utils.createSolidColorTexture(1,0,0.2,1);
 	
 	await initializeBuffer("default", [{
 		name: "sampler",
@@ -237,8 +264,10 @@ export async function init(){
 		name: "albedo",
 		visibility: GPUShaderStage.FRAGMENT,
 		bindingLayoutType: BindingLayoutType.Texture,
-		texture: await syn.utils.createSolidColorTexture(1,0,0.2,1)
-	}]);
+		texture: bla.createView()
+	}],1);
+
+	await updateGBufferTextures();
 	
 	await initializeMaterials();
 
@@ -250,8 +279,60 @@ export async function init(){
 
 
 }
-	
 
+async function updateGBufferTextures(){
+	var w = canvas.clientWidth; var h = canvas.clientHeight;
+	gBufferTexture2DFloat16 = device.createTexture({
+		size: [w,h],
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+		format: 'rgba16float',
+	  });
+	gBufferTextureAlbedo = device.createTexture({
+		size: [w,h],
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+		format: 'bgra8unorm',
+	  });
+	depthTexture = device.createTexture({
+		size: [w,h],
+		format: 'depth24plus',
+		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+	  });
+
+	  gBufferTextureViews = [
+		await gBufferTexture2DFloat16.createView(),
+		await gBufferTextureAlbedo.createView(),
+		await depthTexture.createView(),
+	];
+
+	  await initializeBuffer("gbuffer",
+	[{
+		name: "albedo",
+		visibility: GPUShaderStage.FRAGMENT,
+		bindingLayoutType: BindingLayoutType.Texture,
+		textureSampleType: TextureSampleType.UnfilterableFloat,
+		texture: gBufferTextureViews[0]
+	},{
+		name: "normal",
+		visibility: GPUShaderStage.FRAGMENT,
+		bindingLayoutType: BindingLayoutType.Texture,
+		textureSampleType: TextureSampleType.UnfilterableFloat,
+		texture: gBufferTextureViews[1]
+	},{
+		name: "depth",
+		visibility: GPUShaderStage.FRAGMENT,
+		bindingLayoutType: BindingLayoutType.Texture,
+		textureSampleType: TextureSampleType.Depth,
+		texture: gBufferTextureViews[2]
+	},
+
+	],0,true
+		
+	)
+}
+	
+var gBufferTextureViews;
+var gBufferTexture2DFloat16;
+var gBufferTextureAlbedo;
 //  TEACH THIS vvv
 
 //	var bar;
@@ -263,60 +344,70 @@ export async function init(){
 //	console.log(bar.key);
 
 
-var colorAttachment;
+var colorAttachments;
 var depthAttachment;
 
 
 export async function render(){	
+
+	await syn.update();
+
 	canvas.width = canvas.clientWidth;
 	canvas.height = canvas.clientHeight;
 
 	contextTexture = context.getCurrentTexture();
-	depthTexture = device.createTexture({
+	/*depthTexture = device.createTexture({
 		size: [contextTexture.width,contextTexture.height,1],
 		usage:  GPUTextureUsage.COPY_SRC | 
 			GPUTextureUsage.RENDER_ATTACHMENT,
 		format: 'depth24plus-stencil8',
 		dimension: '2d'
-	});
+	});*/
 
 	var encoder = await device.createCommandEncoder();
 
-	colorAttachment = {
-		view: contextTexture.createView(),
+	await updateGBufferTextures();
+
+	colorAttachments = [{
+		view: gBufferTextureViews[0],
 		clearValue: {r:0.5,g:0.5,b:1,a:1},
 		loadOp: 'clear',
 		storeOp: 'store'
-	};
+	},
+	{
+		view: gBufferTextureViews[1],
+		clearValue: {r:0.0,g:0.0,b:0,a:1},
+		loadOp: 'clear',
+		storeOp: 'store'
+	},
+];
 
 	depthAttachment = {
-		view: depthTexture.createView(),
+		view: gBufferTextureViews[2],
 		depthClearValue: 1,
 		depthLoadOp: 'clear',
 		depthStoreOp: 'store',
-		stencilClearValue: 0,
-		stencilLoadOp: 'clear',
-		stencilStoreOp: 'store'
 	}
 
 	var pass = encoder.beginRenderPass({
-		colorAttachments: [colorAttachment],
+		colorAttachments: colorAttachments,
 		depthStencilAttachment: depthAttachment
 	});
 
 	var projmat = syn.math.mat4.perspective(2, canvas.clientWidth/canvas.clientHeight, 0.01, 1000000.0);
 
-	//projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/1000)
+	projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/10000)
 
 
 	//rotmat = syn.math.mat4.invert(rotmat);
 	//rotmat = syn.math.mat4.transpose(rotmat);
 
-	projmat = syn.math.mat4.translate(projmat,[/*Math.sin(Date.now()/1000)*10*/0,0,/*Math.cos(Date.now()/1000)*10*/-10]);
+	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/10000)*10,0,Math.cos(Date.now()/10000)*10]);
 	
-	device.queue.writeBuffer(buffers["transform"].buffer["projMatrix"], 0, projmat);
+	device.queue.writeBuffer(buffers[1]["transform"].buffer["projMatrix"], 0, projmat);
+	device.queue.writeBuffer(buffers[0]["transform"].buffer["projMatrix"], 0, projmat);
 
-	pass.setPipeline(pipelines["default"]);
+	pass.setPipeline(pipelines["gbuffer"]);
 
 
 	for(var a=0;a<syn.scenes.gameObjects[0].length;++a){
@@ -333,25 +424,22 @@ export async function render(){
 			syn.math.vec3.fromValues(
 				obj.transform.position[0],
 				obj.transform.position[1],
-				obj.transform.position[2]
-			),
+				obj.transform.position[2]),
 			syn.math.vec3.fromValues(
 				obj.transform.scale[0],
 				obj.transform.scale[1],
-				obj.transform.scale[2],
-				
-			));
+				obj.transform.scale[2]));
 
-		device.queue.writeBuffer(buffers[obj.name].buffer["modelMatrix"], 0, rotmat);
+		device.queue.writeBuffer(buffers[1][obj.name].buffer["modelMatrix"], 0, rotmat);
 
-		pass.setBindGroup(0,buffers[obj.name].bindGroup);
-		pass.setBindGroup(2,buffers["transform"].bindGroup);
+		pass.setBindGroup(0,buffers[1][obj.name].bindGroup);
+		pass.setBindGroup(2,buffers[1]["transform"].bindGroup);
 
 		if(Object.keys(ren.materials[0]).length>0){
 			pass.setBindGroup(1,materialsLoaded[ren.materials[0]]);
 		} else{
 			//console.log(name+" has no material, reverting to default.")
-			pass.setBindGroup(1,buffers["default"].bindGroup);
+			pass.setBindGroup(1,buffers[1]["default"].bindGroup);
 		}
 
 		pass.setVertexBuffer(0,ren.vertexBuffers.unmodified);
@@ -366,9 +454,31 @@ export async function render(){
 
 	pass.end();
 
+	var deferredPass = encoder.beginRenderPass({
+		colorAttachments: [
+			{
+			  // view is acquired and set in render loop.
+			  view: context.getCurrentTexture().createView(),
+	  
+			  clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+			  loadOp: 'clear',
+			  storeOp: 'store',
+			},
+		  ]
+	});
+
+	deferredPass.setPipeline(pipelines["deferred"]);
+	deferredPass.setBindGroup(0,buffers[0]["transform"].bindGroup)
+	deferredPass.setBindGroup(1,buffers[0]["gbuffer"].bindGroup)
+
+	deferredPass.draw(6);
+
+	deferredPass.end();
+
 	device.queue.submit([encoder.finish()]);
 	//requestAnimationFrame(render);
 
+	
 }
 
 var vertexBuffers = Array()
@@ -419,7 +529,7 @@ export async function getBuffersFromGameObjects(){
 
 		
 		//calculate normals
-			if(false){ //FACE NORMALS
+			//if(false){ //FACE NORMALS
 			for(var j=0;j<model.indices.length;j+=3){
 				var cur = model.indices[j];
 				var cur2 = model.indices[j+1];
@@ -466,7 +576,7 @@ export async function getBuffersFromGameObjects(){
 				nml.push(n[1])
 				nml.push(n[2])
 			}
-		}// else { // VERTEX NORMALS
+		//}// else { // VERTEX NORMALS
 			//for each vertex in the mesh
 			var pts = [];
 			for(var j=0;j<model.positions.length;++j){					
@@ -539,17 +649,21 @@ export async function getBuffersFromGameObjects(){
 }
 
 export async function createPipelines(){
-	
+
 	for(var i = 0; i<pipelinePaths.length;++i){
 
 		var bindGroupLayouts = []
 
-		for(var j=0;j<Object.keys(buffers).length;++j){
-			if(Object.values(buffers)[j].includeInLayout){
-				bindGroupLayouts.push(Object.values(buffers)[j].bindGroupLayout)
+		console.log(buffers[i])
+
+		for(var j=0;j<Object.keys(buffers[i]).length;++j){
+			if(Object.values(buffers[i])[j].includeInLayout){
+				bindGroupLayouts.push(Object.values(buffers[i])[j].bindGroupLayout)
 			}
 		}
 		
+		console.log(pipelinePaths[i]+": "+bindGroupLayouts)
+
 		var layout = device.createPipelineLayout({
 			bindGroupLayouts: bindGroupLayouts 
 		});
@@ -559,13 +673,13 @@ export async function createPipelines(){
 
 
 		//create buffers found in shader
-		for(var i=0;i<shader.vertexBuffers.length;++i){
+		for(var x=0;x<shader.vertexBuffers.length;++x){
 
 			vertexBufferDescs.push(
 				{
-					attributes: shader.vertexBuffers[i].attributes,
-					arrayStride: shader.vertexBuffers[i].arrayStride,
-					stepMode: shader.vertexBuffers[i].stepMode
+					attributes: shader.vertexBuffers[x].attributes,
+					arrayStride: shader.vertexBuffers[x].arrayStride,
+					stepMode: shader.vertexBuffers[x].stepMode
 				}
 			)
 			//find way to automate this
@@ -578,8 +692,7 @@ export async function createPipelines(){
 		var fragment = device.createShaderModule({
 			code:await syn.io.getRaw(shader.fragment)});
 			
-		pipelines[pipeline.name]=(
-			device.createRenderPipeline({
+		var descriptor = {
 				layout: layout,
 				vertex: {
 					module: vertex,
@@ -589,19 +702,28 @@ export async function createPipelines(){
 				fragment: {
 					module: fragment,
 					entryPoint: 'main',
-					targets: [{format: pipeline.format}]
+					targets: pipeline.targets
 				},
 				primitive: {
 					frontFace: 'cw',
 					cullMode: pipeline.cullMode,
 					topology: 'triangle-list'
 				},
-				depthStencil: {
-					depthWriteEnabled: true,
-					depthCompare: pipeline.depthCompare,
-					format: 'depth24plus-stencil8'
-				}
-			})
+		}
+
+		console.log(pipeline.depthStencil)
+		if(pipeline.depthStencil!=null){
+			descriptor.depthStencil= {
+				depthWriteEnabled: true,
+				depthCompare: pipeline.depthCompare,
+				format: 'depth24plus'
+			}
+		}
+
+		pipelines[pipeline.name]=(
+			await device.createRenderPipeline(descriptor)
 		);
+
+		console.log(pipelines[pipeline.name])
 	}
 }

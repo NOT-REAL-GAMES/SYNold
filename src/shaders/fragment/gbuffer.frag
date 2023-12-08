@@ -13,9 +13,10 @@ fn main(
     @location(0) uv : vec2<f32>,
     @location(1) faceNormals : vec3<f32>,
     @location(2) vertexNormals : vec3<f32>
-    ) -> @location(0) vec4f {
+    ) -> GBufferOutput {
     
-    //return textureSample(tex, smp, uv);
-
-    return vec4(normalize(vertexNormals), 1.0);
+    var out : GBufferOutput;
+    out.normal = vec4(normalize((faceNormals*0.1+vertexNormals*0.9)), 1.0);
+    out.albedo = textureSample(tex, smp, uv);
+    return out;
 }

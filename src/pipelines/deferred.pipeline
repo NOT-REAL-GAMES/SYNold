@@ -1,0 +1,9 @@
+{
+    "name": "deferred",
+    "shader": "./src/shaders/deferred.shader",
+    "cullMode": "none",
+    "depthCompare": "less",
+    "targets": [
+        {"format":"bgra8unorm"}
+    ]
+}

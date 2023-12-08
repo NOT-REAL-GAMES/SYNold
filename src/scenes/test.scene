@@ -4,7 +4,7 @@
 
 		"transform":{
 			"position": [0,0,0],
-			"rotation": [25,0,25],
+			"rotation": [0,0,0],
 			"scale": [2,2,2]
 		},
 		"components":{
@@ -19,7 +19,7 @@
 		"transform":{
 			"position": [0,-10,0],
 			"rotation": [0,45,0],
-			"scale": [2,1,1]
+			"scale": [2,2,2]
 		},
 		"components":{
 			"renderer":{

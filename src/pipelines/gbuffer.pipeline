@@ -1,0 +1,16 @@
+{
+    "name": "gbuffer",
+    "shader": "./src/shaders/gbuffer.shader",
+    "cullMode": "none",
+    "depthCompare": "less",
+    "targets": [
+        {"format": "rgba16float"},
+        {"format": "bgra8unorm"}
+    ],
+
+    "depthStencil": {
+        "depthWriteEnabled": true,
+        "depthCompare": "less",
+        "format": "depth24plus"
+    }
+}
