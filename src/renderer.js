@@ -287,6 +287,8 @@ export async function init(){
 }
 
 var resolutionScale = new Float32Array(1);
+//TODO: dynamic resolution scaling
+//console.log(performance.memory.jsHeapSizeLimit/1024/1024/1024);
 resolutionScale[0] = 2.0;
 
 async function updateGBufferTextures(){
