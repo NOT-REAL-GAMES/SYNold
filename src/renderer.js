@@ -681,7 +681,6 @@ export async function createPipelines(){
 					stepMode: shader.vertexBuffers[x].stepMode
 				}
 			)
-			//find way to automate this
 		}
 		
 		await getBuffersFromGameObjects();
