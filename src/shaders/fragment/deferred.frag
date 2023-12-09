@@ -11,7 +11,8 @@ struct LightData {
 struct LightsBuffer {
   lights: array<LightData>,
 }
-@group(1) @binding(0) var<storage, read> lightsBuffer: LightsBuffer;
+@group(2) @binding(0) var<storage, read> lightsBuffer: LightsBuffer;
+@group(2) @binding(1) var<uniform> config: Config;
 
 struct Config {
   numLights : u32,
@@ -22,8 +23,7 @@ struct Uniforms {
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-//@group(1) @binding(1) var<uniform> config: Config;
-
+@group(0) @binding(1) var<uniform> resScale: f32;
 
 fn world_from_screen_coord(coord : vec2<f32>, depth_sample: f32) -> vec3<f32> {
   // reconstruct world-space position from the screen coordinate.
@@ -41,7 +41,7 @@ fn main(
 
   let depth = textureLoad(
     gBufferDepth,
-    vec2<i32>(floor(coord.xy)),
+    vec2<i32>(floor(coord.xy)/resScale),
     0
   );
 
@@ -51,18 +51,18 @@ fn main(
   }
 
   let bufferSize = textureDimensions(gBufferDepth);
-  let coordUV = coord.xy / vec2<f32>(bufferSize);
+  let coordUV = coord.xy / resScale / vec2<f32>(bufferSize);
   let position = world_from_screen_coord(coordUV, depth);
 
   let normal = textureLoad(
     gBufferNormal,
-    vec2<i32>(floor(coord.xy)),
+    vec2<i32>(floor(coord.xy)/resScale),
     0
   ).xyz;
 
   let albedo = textureLoad(
     gBufferAlbedo,
-    vec2<i32>(floor(coord.xy)),
+    vec2<i32>(floor(coord.xy)/resScale),
     0
   ).rgb;
 
@@ -79,7 +79,7 @@ fn main(
   }*/
 
   // some manual ambient
-  result += vec3(0.2);
+  result += vec3(0.2,0.0,0.1);
 
   return vec4(normal, 1.0);
 }

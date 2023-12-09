@@ -13,6 +13,7 @@ import * as syn from './base.js'
 
 var transformBuffer = {};
 
+//TODO: make into an object of objects
 var buffers = [{}];
 
 var materialsLoaded = {};
@@ -97,8 +98,6 @@ export async function initializeBuffer(name,subbuffers=[{}],index,includeInLayou
 
 
 	}
-
-	console.log(buffers[index][name].bindGroupLayoutEntries)
 
 	buffers[index][name].bindGroupLayout = 
 		await device.createBindGroupLayout({
@@ -250,6 +249,13 @@ export async function init(){
 					GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.FRAGMENT,
 			bindingLayoutType: BindingLayoutType.Buffer
+		},{
+			name: "resolutionScale",
+			size: 4,
+			usage: GPUBufferUsage.UNIFORM | 
+					GPUBufferUsage.COPY_DST,
+			visibility: GPUShaderStage.FRAGMENT,
+			bindingLayoutType: BindingLayoutType.Buffer
 		}
 	],0,true
 	);
@@ -280,23 +286,18 @@ export async function init(){
 
 }
 
+var resolutionScale = new Float32Array(1);
+resolutionScale[0] = 2.0;
+
 async function updateGBufferTextures(){
-	var w = canvas.clientWidth; var h = canvas.clientHeight;
+	var w = canvas.clientWidth/resolutionScale[0]; var h = canvas.clientHeight/resolutionScale[0];
+	var usage = GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
 	gBufferTexture2DFloat16 = device.createTexture({
-		size: [w,h],
-		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-		format: 'rgba16float',
-	  });
+		size: [w,h], usage: usage, format: 'rgba16float'});
 	gBufferTextureAlbedo = device.createTexture({
-		size: [w,h],
-		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-		format: 'bgra8unorm',
-	  });
+		size: [w,h], usage: usage, format: 'bgra8unorm'});
 	depthTexture = device.createTexture({
-		size: [w,h],
-		format: 'depth24plus',
-		usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-	  });
+		size: [w,h], usage: usage, format: 'depth24plus'});
 
 	  gBufferTextureViews = [
 		await gBufferTexture2DFloat16.createView(),
@@ -407,6 +408,8 @@ export async function render(){
 	device.queue.writeBuffer(buffers[1]["transform"].buffer["projMatrix"], 0, projmat);
 	device.queue.writeBuffer(buffers[0]["transform"].buffer["projMatrix"], 0, projmat);
 
+	device.queue.writeBuffer(buffers[0]["transform"].buffer["resolutionScale"], 0, resolutionScale);
+
 	pass.setPipeline(pipelines["gbuffer"]);
 
 
@@ -455,16 +458,12 @@ export async function render(){
 	pass.end();
 
 	var deferredPass = encoder.beginRenderPass({
-		colorAttachments: [
-			{
-			  // view is acquired and set in render loop.
-			  view: context.getCurrentTexture().createView(),
-	  
-			  clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-			  loadOp: 'clear',
-			  storeOp: 'store',
-			},
-		  ]
+		colorAttachments: [{
+			view: context.getCurrentTexture().createView(),
+			clearValue: { r: 1.0, g: 0.7, b: 0.8, a: 1.0 },
+			loadOp: 'clear',
+			storeOp: 'store',
+		}]
 	});
 
 	deferredPass.setPipeline(pipelines["deferred"]);
@@ -711,7 +710,6 @@ export async function createPipelines(){
 				},
 		}
 
-		console.log(pipeline.depthStencil)
 		if(pipeline.depthStencil!=null){
 			descriptor.depthStencil= {
 				depthWriteEnabled: true,
