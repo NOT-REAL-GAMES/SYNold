@@ -363,10 +363,11 @@ var depthAttachment;
 
 export async function getRecursiveTransform(obj){
 
-	var y = syn.math.mat4.create();
+	var y = syn.math.mat4.identity();
 
 	if(obj.transform.parent!==""){
 		//console.log(await getRecursiveTransform(syn.scenes.gameObjects[0][obj.transform.parent]));
+		console.log("bla");
 		y = await getRecursiveTransform(syn.scenes.gameObjects[0][obj.transform.parent]);
 	} else {
 		return syn.math.mat4.fromRotationTranslationScaleOrigin(
@@ -411,11 +412,14 @@ export async function getRecursiveTransform(obj){
 			0,
 			0));	
 
-	x = syn.math.mat4.translate(y,obj.transform.position);
-	x = syn.math.mat4.rotateX(x,obj.transform.rotation[0]/57.2958)
-	x = syn.math.mat4.rotateY(x,obj.transform.rotation[1]/57.2958)
-	x = syn.math.mat4.rotateZ(x,obj.transform.rotation[2]/57.2958)
-	x = syn.math.mat4.scale(x,obj.transform.scale)
+	console.log(!syn.math.mat4.equals(x,y));
+
+	if(!syn.math.mat4.equals(x,y)){		
+		x = syn.math.mat4.translate(y,obj.transform.position);
+		x = syn.math.mat4.rotateX(x,obj.transform.rotation[0]/57.2958)
+		x = syn.math.mat4.rotateY(x,obj.transform.rotation[1]/57.2958)
+		x = syn.math.mat4.rotateZ(x,obj.transform.rotation[2]/57.2958)
+		x = syn.math.mat4.scale(x,obj.transform.scale)
 	//x = syn.math.mat4.transpose(x);
 
 	//x = syn.math.mat4.multiply(x,bla.pos)
@@ -424,6 +428,7 @@ export async function getRecursiveTransform(obj){
 	//x = syn.math.mat4.translate(x,bla.pos) 
 
 	///x = syn.math.mat4.scale(x,bla.scl);
+	}
 
 	return x;
 }
@@ -476,13 +481,13 @@ export async function render(){
 
 	var projmat = syn.math.mat4.perspective(2, canvas.clientWidth/canvas.clientHeight, 0.01, 1000000.0);
 
-	projmat = syn.math.mat4.rotateY(projmat,90/57.3)
+	projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/10000)
 
 
 	//rotmat = syn.math.mat4.invert(rotmat);
 	//rotmat = syn.math.mat4.transpose(rotmat);
 
-	projmat = syn.math.mat4.translate(projmat,/*[Math.sin(Date.now()/10000)*10,0,-Math.cos(Date.now()/10000)*10]*/[10,0,0]);
+	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/10000)*10,0,Math.cos(Date.now()/10000)*10]);
 	
 	device.queue.writeBuffer(buffers[1]["transform"].buffer["projMatrix"], 0, projmat);
 	device.queue.writeBuffer(buffers[0]["transform"].buffer["projMatrix"], 0, projmat);
