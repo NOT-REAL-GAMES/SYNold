@@ -32,6 +32,8 @@ const TextureSampleType = {
 
 var sampler;
 
+var gc = new FinalizationRegistry(message => render());
+
 export async function initializeBuffer(name,subbuffers=[{}],index,includeInLayout=true){
 	for(var i=buffers.length;i<index+1;++i){
 		buffers.push({})
@@ -116,11 +118,11 @@ export async function initializeBuffer(name,subbuffers=[{}],index,includeInLayou
 }
 
 async function initializeTransforms(){
-	var obj = syn.scenes.gameObjects[0];
+	var obj = Object.keys(syn.scenes.gameObjects[0]);
 	for(var i=0;i<obj.length;++i){			
 
 		await initializeBuffer(
-			obj[i].name,
+			obj[i],
 			[{name: "modelMatrix",
 			size: 4*16,
 			usage: GPUBufferUsage.UNIFORM | 
@@ -134,9 +136,10 @@ async function initializeTransforms(){
 
 async function initializeMaterials(){
 	//console.log(syn.scenes.gameObjects)
-	var obj = syn.scenes.gameObjects[0];
+	var obj = Object.values(syn.scenes.gameObjects[0]);
 	for(var i=0;i<obj.length;++i){			
 		var bufParams = [];
+		if(obj[i].components.renderer===undefined){continue;}
 		//console.log(obj[i].components)
 		if(obj[i].components.renderer.materials.length>0){
 			
@@ -273,6 +276,8 @@ export async function init(){
 		texture: bla.createView()
 	}],1);
 
+	await resize();
+
 	await updateGBufferTextures();
 	
 	await initializeMaterials();
@@ -289,9 +294,9 @@ export async function init(){
 var resolutionScale = new Float32Array(1);
 //TODO: dynamic resolution scaling
 //console.log(performance.memory.jsHeapSizeLimit/1024/1024/1024);
-resolutionScale[0] = 2.0;
+resolutionScale[0] = 1;
 
-async function updateGBufferTextures(){
+function resize(){
 	var w = canvas.clientWidth/resolutionScale[0]; var h = canvas.clientHeight/resolutionScale[0];
 	var usage = GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
 	gBufferTexture2DFloat16 = device.createTexture({
@@ -300,7 +305,13 @@ async function updateGBufferTextures(){
 		size: [w,h], usage: usage, format: 'bgra8unorm'});
 	depthTexture = device.createTexture({
 		size: [w,h], usage: usage, format: 'depth24plus'});
+}
 
+onresize= function(){
+	resize();
+}
+
+async function updateGBufferTextures(){
 	  gBufferTextureViews = [
 		await gBufferTexture2DFloat16.createView(),
 		await gBufferTextureAlbedo.createView(),
@@ -350,6 +361,72 @@ var gBufferTextureAlbedo;
 var colorAttachments;
 var depthAttachment;
 
+export async function getRecursiveTransform(obj){
+
+	var y = syn.math.mat4.create();
+
+	if(obj.transform.parent!==""){
+		//console.log(await getRecursiveTransform(syn.scenes.gameObjects[0][obj.transform.parent]));
+		y = await getRecursiveTransform(syn.scenes.gameObjects[0][obj.transform.parent]);
+	} else {
+		return syn.math.mat4.fromRotationTranslationScaleOrigin(
+			syn.math.quat.fromEuler(
+				obj.transform.rotation[0],
+				obj.transform.rotation[1],
+				obj.transform.rotation[2]),
+			syn.math.vec3.fromValues(
+				obj.transform.position[0],
+				obj.transform.position[1],
+				obj.transform.position[2]),
+			syn.math.vec3.fromValues(
+				obj.transform.scale[0],
+				obj.transform.scale[1],
+				obj.transform.scale[2]),
+			syn.math.vec3.fromValues(
+				0,
+				0,
+				0));
+	}
+
+	//console.log(y)
+	var bla = syn.math.mat4.decompose(y);
+
+	//console.log(bla)
+
+	var x = syn.math.mat4.fromRotationTranslationScaleOrigin(
+		syn.math.quat.fromEuler(
+			obj.transform.rotation[0],
+			obj.transform.rotation[1],
+			obj.transform.rotation[2]),
+		syn.math.vec3.fromValues(
+			obj.transform.position[0],
+			obj.transform.position[1],
+			obj.transform.position[2]),
+		syn.math.vec3.fromValues(
+			obj.transform.scale[0],
+			obj.transform.scale[1],
+			obj.transform.scale[2]),
+		syn.math.vec3.fromValues(
+			0,
+			0,
+			0));	
+
+	x = syn.math.mat4.translate(y,obj.transform.position);
+	x = syn.math.mat4.rotateX(x,obj.transform.rotation[0]/57.2958)
+	x = syn.math.mat4.rotateY(x,obj.transform.rotation[1]/57.2958)
+	x = syn.math.mat4.rotateZ(x,obj.transform.rotation[2]/57.2958)
+	x = syn.math.mat4.scale(x,obj.transform.scale)
+	//x = syn.math.mat4.transpose(x);
+
+	//x = syn.math.mat4.multiply(x,bla.pos)
+
+
+	//x = syn.math.mat4.translate(x,bla.pos) 
+
+	///x = syn.math.mat4.scale(x,bla.scl);
+
+	return x;
+}
 
 export async function render(){	
 
@@ -399,13 +476,13 @@ export async function render(){
 
 	var projmat = syn.math.mat4.perspective(2, canvas.clientWidth/canvas.clientHeight, 0.01, 1000000.0);
 
-	projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/10000)
+	projmat = syn.math.mat4.rotateY(projmat,90/57.3)
 
 
 	//rotmat = syn.math.mat4.invert(rotmat);
 	//rotmat = syn.math.mat4.transpose(rotmat);
 
-	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/10000)*10,0,Math.cos(Date.now()/10000)*10]);
+	projmat = syn.math.mat4.translate(projmat,/*[Math.sin(Date.now()/10000)*10,0,-Math.cos(Date.now()/10000)*10]*/[10,0,0]);
 	
 	device.queue.writeBuffer(buffers[1]["transform"].buffer["projMatrix"], 0, projmat);
 	device.queue.writeBuffer(buffers[0]["transform"].buffer["projMatrix"], 0, projmat);
@@ -415,29 +492,24 @@ export async function render(){
 	pass.setPipeline(pipelines["gbuffer"]);
 
 
-	for(var a=0;a<syn.scenes.gameObjects[0].length;++a){
+	for(var a=0;a<Object.values(syn.scenes.gameObjects[0]).length;++a){
 
-
-		var obj = syn.scenes.gameObjects[0][a];
+		var obj = Object.values(syn.scenes.gameObjects[0])[a];
 		var ren = obj.components.renderer;		
 		
-		var rotmat = syn.math.mat4.fromRotationTranslationScale(
-			syn.math.quat.fromEuler(
-				obj.transform.rotation[0],
-				obj.transform.rotation[1],
-				obj.transform.rotation[2]),
-			syn.math.vec3.fromValues(
-				obj.transform.position[0],
-				obj.transform.position[1],
-				obj.transform.position[2]),
-			syn.math.vec3.fromValues(
-				obj.transform.scale[0],
-				obj.transform.scale[1],
-				obj.transform.scale[2]));
+		if(ren===undefined){
+			continue;
+		}
 
-		device.queue.writeBuffer(buffers[1][obj.name].buffer["modelMatrix"], 0, rotmat);
+		var name = Object.keys(syn.scenes.gameObjects[0])[a];
 
-		pass.setBindGroup(0,buffers[1][obj.name].bindGroup);
+		//TODO: implement parent transforms
+		var rotmat = await getRecursiveTransform(syn.scenes.gameObjects[0][name]);
+
+		//console.log(name+","+rotmat)
+		device.queue.writeBuffer(buffers[1][name].buffer["modelMatrix"], 0, rotmat);
+
+		pass.setBindGroup(0,buffers[1][name].bindGroup);
 		pass.setBindGroup(2,buffers[1]["transform"].bindGroup);
 
 		if(Object.keys(ren.materials[0]).length>0){
@@ -476,7 +548,10 @@ export async function render(){
 
 	deferredPass.end();
 
-	device.queue.submit([encoder.finish()]);
+	await gc.register(gBufferTextureViews,"GBuffer texture views collected.")
+	gBufferTextureViews = null;
+
+	await device.queue.submit([encoder.finish()]);
 	//requestAnimationFrame(render);
 
 	
@@ -492,7 +567,7 @@ var indexBuffers = [];
 var totalIndex = [];
 
 export async function getBuffersFromGameObjects(){
-	for(var x=0;x<syn.scenes.gameObjects[0].length;++x){
+	for(var x=0;x<Object.values(syn.scenes.gameObjects[0]).length;++x){
 
 		var vtx = Array();
 		var idx = Array();	
@@ -502,8 +577,10 @@ export async function getBuffersFromGameObjects(){
 
 		//console.log(syn.scenes.mainScene.gameObjects[x].name)
 
-		var obj = syn.scenes.gameObjects[0][x]
+		var obj = Object.values(syn.scenes.gameObjects[0])[x]
 		var ren = obj.components.renderer;
+
+		if(ren===undefined){continue;}
 
 		var model = await syn.io.getJSON(ren.modelSource);
 

@@ -93,7 +93,8 @@ export function set(out, x, y, z, w) {
  * @param {ReadonlyVec4} b the second operand
  * @returns {vec4} out
  */
-export function add(out, a, b) {
+export function add(a, b) {
+  var out = create();
   out[0] = a[0] + b[0];
   out[1] = a[1] + b[1];
   out[2] = a[2] + b[2];

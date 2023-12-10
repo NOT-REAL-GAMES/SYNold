@@ -28,7 +28,9 @@ export function create() {
  * @param {quat} out the receiving quaternion
  * @returns {quat} out
  */
-export function identity(out) {
+export function identity() {
+  var out = create();
+
   out[0] = 0;
   out[1] = 0;
   out[2] = 0;
@@ -45,8 +47,9 @@ export function identity(out) {
  * @param {Number} rad the angle in radians
  * @returns {quat} out
  **/
-export function setAxisAngle(out, axis, rad) {
+export function setAxisAngle(axis, rad) {
   rad = rad * 0.5;
+  var out = create();
   let s = Math.sin(rad);
   out[0] = s * axis[0];
   out[1] = s * axis[1];
@@ -105,7 +108,7 @@ export function getAngle(a, b) {
  * @param {ReadonlyQuat} b the second operand
  * @returns {quat} out
  */
-export function multiply(out, a, b) {
+export function multiply(a, b) {
   let ax = a[0],
     ay = a[1],
     az = a[2],
@@ -114,6 +117,8 @@ export function multiply(out, a, b) {
     by = b[1],
     bz = b[2],
     bw = b[3];
+
+  var out = create();
 
   out[0] = ax * bw + aw * bx + ay * bz - az * by;
   out[1] = ay * bw + aw * by + az * bx - ax * bz;
@@ -130,7 +135,7 @@ export function multiply(out, a, b) {
  * @param {number} rad angle (in radians) to rotate
  * @returns {quat} out
  */
-export function rotateX(out, a, rad) {
+export function rotateX(a, rad) {
   rad *= 0.5;
 
   let ax = a[0],
@@ -139,6 +144,8 @@ export function rotateX(out, a, rad) {
     aw = a[3];
   let bx = Math.sin(rad),
     bw = Math.cos(rad);
+
+  var out = create();
 
   out[0] = ax * bw + aw * bx;
   out[1] = ay * bw + az * bx;
@@ -155,7 +162,7 @@ export function rotateX(out, a, rad) {
  * @param {number} rad angle (in radians) to rotate
  * @returns {quat} out
  */
-export function rotateY(out, a, rad) {
+export function rotateY(a, rad) {
   rad *= 0.5;
 
   let ax = a[0],
@@ -164,6 +171,8 @@ export function rotateY(out, a, rad) {
     aw = a[3];
   let by = Math.sin(rad),
     bw = Math.cos(rad);
+
+  var out = create();
 
   out[0] = ax * bw - az * by;
   out[1] = ay * bw + aw * by;
@@ -180,7 +189,7 @@ export function rotateY(out, a, rad) {
  * @param {number} rad angle (in radians) to rotate
  * @returns {quat} out
  */
-export function rotateZ(out, a, rad) {
+export function rotateZ(a, rad) {
   rad *= 0.5;
 
   let ax = a[0],
@@ -189,6 +198,8 @@ export function rotateZ(out, a, rad) {
     aw = a[3];
   let bz = Math.sin(rad),
     bw = Math.cos(rad);
+
+    var out = create();
 
   out[0] = ax * bw + ay * bz;
   out[1] = ay * bw - ax * bz;
@@ -206,10 +217,12 @@ export function rotateZ(out, a, rad) {
  * @param {ReadonlyQuat} a quat to calculate W component of
  * @returns {quat} out
  */
-export function calculateW(out, a) {
+export function calculateW(a) {
   let x = a[0],
     y = a[1],
     z = a[2];
+
+    var out = create();
 
   out[0] = x;
   out[1] = y;
@@ -225,7 +238,7 @@ export function calculateW(out, a) {
  * @param {ReadonlyQuat} a quat to calculate the exponential of
  * @returns {quat} out
  */
-export function exp(out, a) {
+export function exp(a) {
   let x = a[0],
     y = a[1],
     z = a[2],
@@ -234,6 +247,8 @@ export function exp(out, a) {
   let r = Math.sqrt(x * x + y * y + z * z);
   let et = Math.exp(w);
   let s = r > 0 ? (et * Math.sin(r)) / r : 0;
+
+  var out = create();
 
   out[0] = x * s;
   out[1] = y * s;
@@ -250,7 +265,7 @@ export function exp(out, a) {
  * @param {ReadonlyQuat} a quat to calculate the exponential of
  * @returns {quat} out
  */
-export function ln(out, a) {
+export function ln(a) {
   let x = a[0],
     y = a[1],
     z = a[2],
@@ -258,6 +273,8 @@ export function ln(out, a) {
 
   let r = Math.sqrt(x * x + y * y + z * z);
   let t = r > 0 ? Math.atan2(r, w) / r : 0;
+
+  var out = create();
 
   out[0] = x * t;
   out[1] = y * t;
@@ -275,10 +292,11 @@ export function ln(out, a) {
  * @param {Number} b amount to scale the quaternion by
  * @returns {quat} out
  */
-export function pow(out, a, b) {
-  ln(out, a);
-  scale(out, out, b);
-  exp(out, out);
+export function pow(a, b) {
+  var out = create();
+  out = ln(a);
+  out = scale(out, b);
+  out = exp(out);
   return out;
 }
 
@@ -291,7 +309,7 @@ export function pow(out, a, b) {
  * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
  * @returns {quat} out
  */
-export function slerp(out, a, b, t) {
+export function slerp(a, b, t) {
   // benchmarks:
   //    http://jsperf.com/quaternion-slerp-implementations
   let ax = a[0],
@@ -329,6 +347,8 @@ export function slerp(out, a, b, t) {
     scale1 = t;
   }
   // calculate final values
+  var out = create();
+  
   out[0] = scale0 * ax + scale1 * bx;
   out[1] = scale0 * ay + scale1 * by;
   out[2] = scale0 * az + scale1 * bz;
@@ -343,7 +363,7 @@ export function slerp(out, a, b, t) {
  * @param {quat} out the receiving quaternion
  * @returns {quat} out
  */
-export function random(out) {
+export function random() {
   // Implementation of http://planning.cs.uiuc.edu/node198.html
   // TODO: Calling random 3 times is probably not the fastest solution
   let u1 = math.glm.RANDOM();
@@ -352,6 +372,8 @@ export function random(out) {
 
   let sqrt1MinusU1 = Math.sqrt(1 - u1);
   let sqrtU1 = Math.sqrt(u1);
+
+  var out = create();
 
   out[0] = sqrt1MinusU1 * Math.sin(2.0 * Math.PI * u2);
   out[1] = sqrt1MinusU1 * Math.cos(2.0 * Math.PI * u2);
@@ -367,7 +389,7 @@ export function random(out) {
  * @param {ReadonlyQuat} a quat to calculate inverse of
  * @returns {quat} out
  */
-export function invert(out, a) {
+export function invert(a) {
   let a0 = a[0],
     a1 = a[1],
     a2 = a[2],
@@ -376,6 +398,7 @@ export function invert(out, a) {
   let invDot = dot ? 1.0 / dot : 0;
 
   // TODO: Would be faster to return [0,0,0,0] immediately if dot == 0
+  var out = create();
 
   out[0] = -a0 * invDot;
   out[1] = -a1 * invDot;
@@ -392,7 +415,9 @@ export function invert(out, a) {
  * @param {ReadonlyQuat} a quat to calculate conjugate of
  * @returns {quat} out
  */
-export function conjugate(out, a) {
+export function conjugate(a) {
+  var out = create();
+
   out[0] = -a[0];
   out[1] = -a[1];
   out[2] = -a[2];
@@ -411,11 +436,13 @@ export function conjugate(out, a) {
  * @returns {quat} out
  * @function
  */
-export function fromMat3(out, m) {
+export function fromMat3(m) {
   // Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
   // article "Quaternion Calculus and Fast Animation".
   let fTrace = m[0] + m[4] + m[8];
   let fRoot;
+
+  var out = create();
 
   if (fTrace > 0.0) {
     // |w| > 1/2, may as well choose w > 1/2

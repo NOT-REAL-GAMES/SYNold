@@ -1,32 +1,73 @@
 {
-	"gameObjects": [{			
-		"name": "cube",
+	"gameObjects": {
+		"clock":{
+			"transform": {
+				"parent": "",
 
-		"transform":{
-			"position": [0,0,0],
-			"rotation": [0,0,0],
-			"scale": [2,2,2]
+				"position": [0,0,0],
+				"rotation": [0,0,0],
+				"scale": [1,1,1]
+			},
+			"components":{}
 		},
-		"components":{
-			"renderer":{
-				"modelSource": "./src/models/cube.model",
-				"materials": ["test"]
+	
+		"seconds": {			
+			"transform":{
+				"parent": "clock",
+
+				"position": [0,0,0.2],
+				"rotation": [0,0,0],
+				"scale": [0.05,1,0.05]
+			},
+			"components":{
+				"renderer":{
+					"modelSource": "./src/models/offcube.model",
+					"materials": ["test"]
+				}
+			}
+		},"minutes":{			
+			"transform":{
+				"parent": "clock",
+
+				"position": [0,0,0.1],
+				"rotation": [0,0,0],
+				"scale": [0.10,0.8,0.10]
+			},
+			"components":{
+				"renderer":{
+					"modelSource": "./src/models/offcube.model",
+					"materials": ["test"]
+				}
+			}
+		},"hours": {			
+			"transform":{
+				"parent": "clock",
+
+				"position": [0,0,0],
+				"rotation": [0,0,0],
+				"scale": [0.15,0.75,0.15]
+			},
+			"components":{
+				"renderer":{
+					"modelSource": "./src/models/offcube.model",
+					"materials": ["test"]
+				}
+			}
+		},"floor":{			
+			"transform":{
+				"parent": "",
+
+				"position": [0,0,0],
+				"rotation": [0,45,0],
+				"scale": [2,2,2]
+			},
+			"components":{
+				"renderer":{
+					"modelSource": "./src/models/floor.model",
+					"materials": [{
+					}]		
+				}
 			}
 		}
-	},{			
-		"name": "floor",
-
-		"transform":{
-			"position": [0,-10,0],
-			"rotation": [0,45,0],
-			"scale": [2,2,2]
-		},
-		"components":{
-			"renderer":{
-				"modelSource": "./src/models/floor.model",
-				"materials": [{
-				}]		
-			}
-		}
-	}]
+	}
 }

@@ -1,3 +1,5 @@
+import * as math from './math.js'
+
 export function perspective(fovy, aspect, near, far) {
     var out = new Float32Array(16);
     const f = 1.0 / Math.tan(fovy / 2);
@@ -443,3 +445,177 @@ export function perspective(fovy, aspect, near, far) {
     return out;
   }
   
+  export function fromRotationTranslationScaleOrigin(q, v, s, o) {
+    // Quaternion math
+    let x = q[0],
+      y = q[1],
+      z = q[2],
+      w = q[3];
+    let x2 = x + x;
+    let y2 = y + y;
+    let z2 = z + z;
+  
+    let xx = x * x2;
+    let xy = x * y2;
+    let xz = x * z2;
+    let yy = y * y2;
+    let yz = y * z2;
+    let zz = z * z2;
+    let wx = w * x2;
+    let wy = w * y2;
+    let wz = w * z2;
+  
+    let sx = s[0];
+    let sy = s[1];
+    let sz = s[2];
+  
+    let ox = o[0];
+    let oy = o[1];
+    let oz = o[2];
+  
+    let out0 = (1 - (yy + zz)) * sx;
+    let out1 = (xy + wz) * sx;
+    let out2 = (xz - wy) * sx;
+    let out4 = (xy - wz) * sy;
+    let out5 = (1 - (xx + zz)) * sy;
+    let out6 = (yz + wx) * sy;
+    let out8 = (xz + wy) * sz;
+    let out9 = (yz - wx) * sz;
+    let out10 = (1 - (xx + yy)) * sz;
+  
+    var out = create();
+
+    out[0] = out0;
+    out[1] = out1;
+    out[2] = out2;
+    out[3] = 0;
+    out[4] = out4;
+    out[5] = out5;
+    out[6] = out6;
+    out[7] = 0;
+    out[8] = out8;
+    out[9] = out9;
+    out[10] = out10;
+    out[11] = 0;
+    out[12] = v[0] + ox - (out0 * ox + out4 * oy + out8 * oz);
+    out[13] = v[1] + oy - (out1 * ox + out5 * oy + out9 * oz);
+    out[14] = v[2] + oz - (out2 * ox + out6 * oy + out10 * oz);
+    out[15] = 1;
+  
+    return out;
+  }
+
+  export function scale(a, v) {
+    let x = v[0],
+      y = v[1],
+      z = v[2];
+  
+    var out = create();
+
+    out[0] = a[0] * x;
+    out[1] = a[1] * x;
+    out[2] = a[2] * x;
+    out[3] = a[3] * x;
+    out[4] = a[4] * y;
+    out[5] = a[5] * y;
+    out[6] = a[6] * y;
+    out[7] = a[7] * y;
+    out[8] = a[8] * z;
+    out[9] = a[9] * z;
+    out[10] = a[10] * z;
+    out[11] = a[11] * z;
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+    return out;
+  
+  }
+  
+  export function decompose(mat) {
+    var out_r = math.quat.create(), out_t = math.vec3.create(), out_s = math.vec3.create();
+
+    out_t[0] = mat[12];
+    out_t[1] = mat[13];
+    out_t[2] = mat[14];
+  
+    let m11 = mat[0];
+    let m12 = mat[1];
+    let m13 = mat[2];
+    let m21 = mat[4];
+    let m22 = mat[5];
+    let m23 = mat[6];
+    let m31 = mat[8];
+    let m32 = mat[9];
+    let m33 = mat[10];
+  
+    out_s[0] = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
+    out_s[1] = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
+    out_s[2] = Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+  
+    let is1 = 1 / out_s[0];
+    let is2 = 1 / out_s[1];
+    let is3 = 1 / out_s[2];
+  
+    let sm11 = m11 * is1;
+    let sm12 = m12 * is2;
+    let sm13 = m13 * is3;
+    let sm21 = m21 * is1;
+    let sm22 = m22 * is2;
+    let sm23 = m23 * is3;
+    let sm31 = m31 * is1;
+    let sm32 = m32 * is2;
+    let sm33 = m33 * is3;
+  
+    let trace = sm11 + sm22 + sm33;
+    let S = 0;
+  
+    if (trace > 0) {
+      S = Math.sqrt(trace + 1.0) * 2;
+      out_r[3] = 0.25 * S;
+      out_r[0] = (sm23 - sm32) / S;
+      out_r[1] = (sm31 - sm13) / S;
+      out_r[2] = (sm12 - sm21) / S;
+    } else if (sm11 > sm22 && sm11 > sm33) {
+      S = Math.sqrt(1.0 + sm11 - sm22 - sm33) * 2;
+      out_r[3] = (sm23 - sm32) / S;
+      out_r[0] = 0.25 * S;
+      out_r[1] = (sm12 + sm21) / S;
+      out_r[2] = (sm31 + sm13) / S;
+    } else if (sm22 > sm33) {
+      S = Math.sqrt(1.0 + sm22 - sm11 - sm33) * 2;
+      out_r[3] = (sm31 - sm13) / S;
+      out_r[0] = (sm12 + sm21) / S;
+      out_r[1] = 0.25 * S;
+      out_r[2] = (sm23 + sm32) / S;
+    } else {
+      S = Math.sqrt(1.0 + sm33 - sm11 - sm22) * 2;
+      out_r[3] = (sm12 - sm21) / S;
+      out_r[0] = (sm31 + sm13) / S;
+      out_r[1] = (sm23 + sm32) / S;
+      out_r[2] = 0.25 * S;
+    }
+  
+    return {rot: out_r, pos: out_t, scl: out_s};
+  }
+
+  export function add(a, b) {
+    var out = create();
+    out[0] = a[0] + b[0];
+    out[1] = a[1] + b[1];
+    out[2] = a[2] + b[2];
+    out[3] = a[3] + b[3];
+    out[4] = a[4] + b[4];
+    out[5] = a[5] + b[5];
+    out[6] = a[6] + b[6];
+    out[7] = a[7] + b[7];
+    out[8] = a[8] + b[8];
+    out[9] = a[9] + b[9];
+    out[10] = a[10] + b[10];
+    out[11] = a[11] + b[11];
+    out[12] = a[12] + b[12];
+    out[13] = a[13] + b[13];
+    out[14] = a[14] + b[14];
+    out[15] = a[15] + b[15];
+    return out;
+  }

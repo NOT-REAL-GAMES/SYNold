@@ -1,7 +1,7 @@
 {
     "name": "gbuffer",
     "shader": "./src/shaders/gbuffer.shader",
-    "cullMode": "none",
+    "cullMode": "back",
     "depthCompare": "less",
     "targets": [
         {"format": "rgba16float"},
