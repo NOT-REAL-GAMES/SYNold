@@ -7,7 +7,7 @@ import * as scenes from './scenes.js'
 export {ren, io, utils, math, scenes};
 
 export async function update(){
-    var d = new Date(); console.log(d.getSeconds());
+    var d = new Date(); //console.log(d.getSeconds());
 
     scenes.gameObjects[0]["clock"].transform.scale[1] = Math.sin(Date.now()/1000)+1.5
     scenes.gameObjects[0]["clock"].transform.scale[2] = Math.cos(Date.now()/1000)+1.5

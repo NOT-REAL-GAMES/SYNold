@@ -288,7 +288,6 @@ export async function init(){
 	
 	setInterval(render,20);
 
-
 }
 
 var resolutionScale = new Float32Array(1);
@@ -307,12 +306,14 @@ function resize(){
 		size: [w,h], usage: usage, format: 'depth24plus'});
 }
 
-onresize= function(){
-	resize();
+onresize = async function(){
+	await resize();
 }
 
 async function updateGBufferTextures(){
-	  gBufferTextureViews = [
+	gBufferTextureViews = await []
+
+	  gBufferTextureViews = await [
 		await gBufferTexture2DFloat16.createView(),
 		await gBufferTextureAlbedo.createView(),
 		await depthTexture.createView(),
@@ -342,6 +343,7 @@ async function updateGBufferTextures(){
 	],0,true
 		
 	)
+	console.log("bla")
 }
 	
 var gBufferTextureViews;
@@ -367,7 +369,6 @@ export async function getRecursiveTransform(obj){
 
 	if(obj.transform.parent!==""){
 		//console.log(await getRecursiveTransform(syn.scenes.gameObjects[0][obj.transform.parent]));
-		console.log("bla");
 		y = await getRecursiveTransform(syn.scenes.gameObjects[0][obj.transform.parent]);
 	} else {
 		return syn.math.mat4.fromRotationTranslationScaleOrigin(
@@ -412,7 +413,7 @@ export async function getRecursiveTransform(obj){
 			0,
 			0));	
 
-	console.log(!syn.math.mat4.equals(x,y));
+	//console.log(!syn.math.mat4.equals(x,y));
 
 	if(!syn.math.mat4.equals(x,y)){		
 		x = syn.math.mat4.translate(y,obj.transform.position);
@@ -436,6 +437,7 @@ export async function getRecursiveTransform(obj){
 export async function render(){	
 
 	await syn.update();
+	await updateGBufferTextures();
 
 	canvas.width = canvas.clientWidth;
 	canvas.height = canvas.clientHeight;
@@ -451,7 +453,6 @@ export async function render(){
 
 	var encoder = await device.createCommandEncoder();
 
-	await updateGBufferTextures();
 
 	colorAttachments = [{
 		view: gBufferTextureViews[0],
@@ -552,9 +553,6 @@ export async function render(){
 	deferredPass.draw(6);
 
 	deferredPass.end();
-
-	await gc.register(gBufferTextureViews,"GBuffer texture views collected.")
-	gBufferTextureViews = null;
 
 	await device.queue.submit([encoder.finish()]);
 	//requestAnimationFrame(render);
