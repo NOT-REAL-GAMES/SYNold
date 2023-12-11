@@ -15,7 +15,7 @@
 			"transform":{
 				"parent": "clock",
 
-				"position": [0,0,0.2],
+				"position": [-0.1,0,0],
 				"rotation": [0,0,0],
 				"scale": [0.05,1,0.05]
 			},

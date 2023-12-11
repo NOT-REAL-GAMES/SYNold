@@ -343,7 +343,6 @@ async function updateGBufferTextures(){
 	],0,true
 		
 	)
-	console.log("bla")
 }
 	
 var gBufferTextureViews;
