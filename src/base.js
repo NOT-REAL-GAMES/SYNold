@@ -15,6 +15,6 @@ export async function update(){
     //scenes.gameObjects[0]["clock"].transform.scale[2] = Math.cos(Date.now()/1000)+1.5
     scenes.gameObjects[0]["seconds"].transform.rotation[0] = d.getSeconds()*6
     scenes.gameObjects[0]["minutes"].transform.rotation[0] = d.getMinutes()*6
-    scenes.gameObjects[0]["hours"].transform.rotation[0] = d.getHours()*15
+    scenes.gameObjects[0]["hours"].transform.rotation[0] = d.getHours()*30
     //scenes.gameObjects[0][0].transform.rotation[1] = Date.now()
 }
