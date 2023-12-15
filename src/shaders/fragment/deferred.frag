@@ -12,11 +12,6 @@ struct LightsBuffer {
   lights: array<LightData>,
 }
 @group(2) @binding(0) var<storage, read> lightsBuffer: LightsBuffer;
-@group(2) @binding(1) var<uniform> config: Config;
-
-struct Config {
-  numLights : u32,
-}
 
 struct Uniforms {
     projMatrix: mat4x4<f32>
@@ -39,7 +34,7 @@ fn main(
 ) -> @location(0) vec4<f32> {
   var result : vec3<f32>;
 
-  let depth = textureLoad(
+  var depth = textureLoad(
     gBufferDepth,
     vec2<i32>(floor(coord.xy)/resScale),
     0
@@ -50,8 +45,10 @@ fn main(
     discard;
   }
 
+  //depth = pow(depth,128);
+
   let bufferSize = textureDimensions(gBufferDepth);
-  let coordUV = coord.xy / resScale / vec2<f32>(bufferSize);
+  let coordUV = coord.xy /resScale / vec2<f32>(bufferSize);
   let position = world_from_screen_coord(coordUV, depth);
 
   let normal = textureLoad(
@@ -66,20 +63,20 @@ fn main(
     0
   ).rgb;
 
-  /*for (var i = 0u; i < config.numLights; i++) {
+  for (var i = 0u; i < arrayLength(&lightsBuffer.lights); i++) {
     let L = lightsBuffer.lights[i].position.xyz - position;
     let distance = length(L);
     if (distance > lightsBuffer.lights[i].radius) {
       continue;
     }
-    let lambert = max(dot(normal, normalize(L)), 0.0);
+    let lambert = max(dot(normal, normalize(L)), 1.0);
     result += vec3<f32>(
       lambert * pow(1.0 - distance / lightsBuffer.lights[i].radius, 2.0) * lightsBuffer.lights[i].color * albedo
     );
-  }*/
+  }
 
   // some manual ambient
-  result += vec3(0.2,0.0,0.1);
+  result += vec3(0.2,0.075,0.15);
 
-  return vec4(normal, 1.0);
+  return vec4(result, 1.0);
 }

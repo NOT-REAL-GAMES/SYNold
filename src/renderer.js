@@ -30,6 +30,12 @@ const TextureSampleType = {
 	UnfilterableFloat: "unfilterable-float",
 }
 
+const BufferType = {
+	Uniform: "uniform",
+	Storage: "storage",
+	ReadOnlyStorage: "read-only-storage"
+}
+
 var sampler;
 
 var gc = new FinalizationRegistry(message => render());
@@ -90,7 +96,8 @@ export async function initializeBuffer(name,subbuffers=[{}],index,includeInLayou
 		});
 		
 		if(currentSubBuffer.bindingLayoutType===BindingLayoutType.Buffer){
-			buffers[index][name].bindGroupLayoutEntries[j].buffer = { type: "uniform" };
+			var bla = currentSubBuffer.bufferType;
+			buffers[index][name].bindGroupLayoutEntries[j].buffer = { type: bla };
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Sampler){
 			buffers[index][name].bindGroupLayoutEntries[j].sampler = { type: "filtering" };
 		} else if (currentSubBuffer.bindingLayoutType===BindingLayoutType.Texture){
@@ -239,7 +246,8 @@ export async function init(){
 			usage: GPUBufferUsage.UNIFORM | 
 					GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.VERTEX,
-			bindingLayoutType: BindingLayoutType.Buffer
+			bindingLayoutType: BindingLayoutType.Buffer,
+			bufferType: BufferType.Uniform
 		}
 	],1,true
 	);
@@ -251,17 +259,21 @@ export async function init(){
 			usage: GPUBufferUsage.UNIFORM | 
 					GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.FRAGMENT,
-			bindingLayoutType: BindingLayoutType.Buffer
+			bindingLayoutType: BindingLayoutType.Buffer,
+			bufferType: BufferType.Uniform
 		},{
 			name: "resolutionScale",
 			size: 4,
 			usage: GPUBufferUsage.UNIFORM | 
 					GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.FRAGMENT,
-			bindingLayoutType: BindingLayoutType.Buffer
+			bindingLayoutType: BindingLayoutType.Buffer,
+			bufferType: BufferType.Uniform
 		}
 	],0,true
 	);
+
+	
 
 	var bla = await syn.utils.createSolidColorTexture(1,0,0.2,1);
 	
@@ -279,6 +291,19 @@ export async function init(){
 	await resize();
 
 	await updateGBufferTextures();
+
+	await initializeBuffer(
+		"lights",[{
+			name: "lights",
+			size: 8*8*1,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+			visibility: GPUShaderStage.FRAGMENT |
+				GPUShaderStage.COMPUTE,
+			bindingLayoutType: BindingLayoutType.Buffer,
+			bufferType: BufferType.ReadOnlyStorage
+		}
+	],0,true
+	);
 	
 	await initializeMaterials();
 
@@ -479,20 +504,36 @@ export async function render(){
 		depthStencilAttachment: depthAttachment
 	});
 
-	var projmat = syn.math.mat4.perspective(2, canvas.clientWidth/canvas.clientHeight, 0.01, 1000000.0);
+	var projmat = syn.math.mat4.perspective(syn.scenes.gameObjects[0]["camera"].components.camera.fov/57.296, canvas.clientWidth/canvas.clientHeight, .1, 1000000.0);
 
-	projmat = syn.math.mat4.rotateY(projmat,-3.14159-Date.now()/10000)
+	projmat = syn.math.mat4.rotateX(projmat,syn.scenes.gameObjects[0]["camera"].transform.rotation[0]/57.296)
+	projmat = syn.math.mat4.rotateY(projmat,syn.scenes.gameObjects[0]["camera"].transform.rotation[1]/57.296)
+	projmat = syn.math.mat4.rotateZ(projmat,syn.scenes.gameObjects[0]["camera"].transform.rotation[2]/57.296)
 
 
 	//rotmat = syn.math.mat4.invert(rotmat);
 	//rotmat = syn.math.mat4.transpose(rotmat);
 
-	projmat = syn.math.mat4.translate(projmat,[Math.sin(Date.now()/10000)*10,0,Math.cos(Date.now()/10000)*10]);
+	projmat = syn.math.mat4.translate(projmat,syn.scenes.gameObjects[0]["camera"].transform.position);
 	
 	device.queue.writeBuffer(buffers[1]["transform"].buffer["projMatrix"], 0, projmat);
-	device.queue.writeBuffer(buffers[0]["transform"].buffer["projMatrix"], 0, projmat);
+	device.queue.writeBuffer(buffers[0]["transform"].buffer["projMatrix"], 0, syn.math.mat4.invert(projmat));
 
 	device.queue.writeBuffer(buffers[0]["transform"].buffer["resolutionScale"], 0, resolutionScale);
+
+
+	var fuck = new Float32Array(8);
+	fuck[0] = Math.sin(Date.now()/1000)*5//;
+	fuck[1] = 0;
+	fuck[2] = Math.cos(Date.now()/1000)*5; //z
+	fuck[3] = 1
+
+	fuck[4] = 1;
+	fuck[5] = 1;
+	fuck[6] = 1;
+	fuck[7] = 15;
+	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 0, fuck);
+
 
 	pass.setPipeline(pipelines["gbuffer"]);
 
@@ -524,7 +565,7 @@ export async function render(){
 			pass.setBindGroup(1,buffers[1]["default"].bindGroup);
 		}
 
-		pass.setVertexBuffer(0,ren.vertexBuffers.unmodified);
+		pass.setVertexBuffer(0,ren.vertexBuffer);
 		pass.setVertexBuffer(1,ren.uvBuffer);
 		pass.setVertexBuffer(2,ren.faceNormalBuffer);
 		pass.setVertexBuffer(3,ren.vertexNormalBuffer);
@@ -548,6 +589,8 @@ export async function render(){
 	deferredPass.setPipeline(pipelines["deferred"]);
 	deferredPass.setBindGroup(0,buffers[0]["transform"].bindGroup)
 	deferredPass.setBindGroup(1,buffers[0]["gbuffer"].bindGroup)
+	deferredPass.setBindGroup(2,buffers[0]["lights"].bindGroup)
+
 
 	deferredPass.draw(6);
 
@@ -719,7 +762,7 @@ export async function getBuffersFromGameObjects(){
 		//}
 
 		ren.vertexBuffers={};
-		ren.vertexBuffers.unmodified=(await (syn.utils.createBuffer(vtx,GPUBufferUsage.VERTEX)));
+		ren.vertexBuffer=(await (syn.utils.createBuffer(vtx,GPUBufferUsage.VERTEX)));
 		ren.indexBuffer=(await (syn.utils.createBuffer(idx,GPUBufferUsage.INDEX)))
 		ren.uvBuffer=(await (syn.utils.createBuffer(uvs,GPUBufferUsage.VERTEX)))
 		ren.faceNormalBuffer=(await (syn.utils.createBuffer(nml,GPUBufferUsage.VERTEX)))
@@ -793,8 +836,11 @@ export async function createPipelines(){
 		if(pipeline.depthStencil!=null){
 			descriptor.depthStencil= {
 				depthWriteEnabled: true,
-				depthCompare: pipeline.depthCompare,
-				format: 'depth24plus'
+				depthCompare: "less",
+				format: 'depth24plus',
+				depthBias: 0,
+				depthBiasSlopeScale: 0,
+				depthBiasClamp: 0
 			}
 		}
 

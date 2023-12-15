@@ -22,7 +22,7 @@ fn main(@location(0) inPos: vec3f, @location(2) faceNormals : vec3<f32>,
     let worldPos = (modelMatrix * vec4(inPos,1.0)).xyz;
     vsOut.Position = (uniforms.projMatrix)*vec4f(worldPos, 1);
     vsOut.vertexNormals = normalize(vec4f(vertexNormals,1.0)).xyz;
-    vsOut.faceNormals = normalize(vec4f(faceNormals,1.0)).xyz;
+    vsOut.faceNormals = normalize(modelMatrix*vec4f(faceNormals,1.0)).xyz;
     return vsOut;
 }
 		
