@@ -71,7 +71,7 @@ fn main(
     }
     let lambert = max(dot(normal, normalize(L)), 1.0);
     result += vec3<f32>(
-      lambert * pow(1.0 - distance / lightsBuffer.lights[i].radius, 2.0) * lightsBuffer.lights[i].color * albedo
+      lambert * pow(1.0 - distance / lightsBuffer.lights[i].radius, 2.0) * lightsBuffer.lights[i].color * (albedo+vec3(1,1,1))
     );
   }
 

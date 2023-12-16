@@ -295,7 +295,7 @@ export async function init(){
 	await initializeBuffer(
 		"lights",[{
 			name: "lights",
-			size: 8*8*1,
+			size: 8*8*3,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 			visibility: GPUShaderStage.FRAGMENT |
 				GPUShaderStage.COMPUTE,
@@ -522,17 +522,44 @@ export async function render(){
 	device.queue.writeBuffer(buffers[0]["transform"].buffer["resolutionScale"], 0, resolutionScale);
 
 
+	//properly implement this through scenes
 	var fuck = new Float32Array(8);
-	fuck[0] = Math.sin(Date.now()/1000)*5//;
+	fuck[0] = -50//;
 	fuck[1] = 0;
-	fuck[2] = Math.cos(Date.now()/1000)*5; //z
+	fuck[2] = -15; //z
 	fuck[3] = 1
 
 	fuck[4] = 1;
-	fuck[5] = 1;
-	fuck[6] = 1;
-	fuck[7] = 15;
+	fuck[5] = 0;
+	fuck[6] = 0;
+	fuck[7] = 50;
+
+	var fuck2 = new Float32Array(8);
+	fuck2[0] = -35//;
+	fuck2[1] = 0;
+	fuck2[2] = 0; //z
+	fuck2[3] = 1
+
+	fuck2[4] = 0;
+	fuck2[5] = 1;
+	fuck2[6] = 0;
+	fuck2[7] = 50;
+
+	var fuck3 = new Float32Array(8);
+	fuck3[0] = -50//;
+	fuck3[1] = 0;
+	fuck3[2] = 15; //z
+	fuck3[3] = 1
+
+	fuck3[4] = 0;
+	fuck3[5] = 0;
+	fuck3[6] = 1;
+	fuck3[7] = 50;
+
+
 	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 0, fuck);
+	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*1, fuck2);
+	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*2, fuck3);
 
 
 	pass.setPipeline(pipelines["gbuffer"]);

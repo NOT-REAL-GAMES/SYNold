@@ -9,6 +9,6 @@
 		"visibility": "fragment",
 		"bindingLayoutType": "texture",
 		"textureSrc": null,
-		"color": [0,1,1,1]
+		"color": [0,0,0,1]
 	}]
 }
