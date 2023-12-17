@@ -69,9 +69,12 @@ fn main(
     if (distance > lightsBuffer.lights[i].radius) {
       continue;
     }
-    let lambert = max(dot(normal, normalize(L)), 1.0);
+
+    let wtl = (lightsBuffer.lights[i].position.xyz-vec3(uniforms.projMatrix[3][0],uniforms.projMatrix[3][1],uniforms.projMatrix[3][2]));
+
+    let lambert = max(dot(normal, normalize(L)), 0.0);
     result += vec3<f32>(
-      lambert * pow(1.0 - distance / lightsBuffer.lights[i].radius, 2.0) * lightsBuffer.lights[i].color * (albedo+vec3(1,1,1))
+      (albedo+lambert) * pow(1.0 - distance / lightsBuffer.lights[i].radius, 2.0) * (lightsBuffer.lights[i].color)
     );
   }
 

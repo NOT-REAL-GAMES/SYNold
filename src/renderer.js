@@ -275,7 +275,7 @@ export async function init(){
 
 	
 
-	var bla = await syn.utils.createSolidColorTexture(1,0,0.2,1);
+	var bla = await syn.utils.createSolidColorTexture(0.6,0.6,0.6,1);
 	
 	await initializeBuffer("default", [{
 		name: "sampler",
@@ -522,44 +522,44 @@ export async function render(){
 	device.queue.writeBuffer(buffers[0]["transform"].buffer["resolutionScale"], 0, resolutionScale);
 
 
-	//properly implement this through scenes
-	var fuck = new Float32Array(8);
-	fuck[0] = -50//;
-	fuck[1] = 0;
-	fuck[2] = -15; //z
-	fuck[3] = 1
+	//TODO: properly implement this through scenes
+	var light = new Float32Array(8);
+	light[0] = -40//;
+	light[1] = 0;
+	light[2] = Math.sin(Date.now()/500)*-15; //z
+	light[3] = 1
 
-	fuck[4] = 1;
-	fuck[5] = 0;
-	fuck[6] = 0;
-	fuck[7] = 50;
+	light[4] = 1;
+	light[5] = 0;
+	light[6] = 0;
+	light[7] = 50;
 
-	var fuck2 = new Float32Array(8);
-	fuck2[0] = -35//;
-	fuck2[1] = 0;
-	fuck2[2] = 0; //z
-	fuck2[3] = 1
+	var light2 = new Float32Array(8);
+	light2[0] = -40//;
+	light2[1] = 0;
+	light2[2] = -15; //z
+	light2[3] = 1
 
-	fuck2[4] = 0;
-	fuck2[5] = 1;
-	fuck2[6] = 0;
-	fuck2[7] = 50;
+	light2[4] = 0;
+	light2[5] = 1;
+	light2[6] = 0;
+	light2[7] = 50;
 
-	var fuck3 = new Float32Array(8);
-	fuck3[0] = -50//;
-	fuck3[1] = 0;
-	fuck3[2] = 15; //z
-	fuck3[3] = 1
+	var light3 = new Float32Array(8);
+	light3[0] = -40//;
+	light3[1] = 0;
+	light3[2] = 15; //z
+	light3[3] = 1
 
-	fuck3[4] = 0;
-	fuck3[5] = 0;
-	fuck3[6] = 1;
-	fuck3[7] = 50;
+	light3[4] = 0;
+	light3[5] = 0;
+	light3[6] = 1;
+	light3[7] = 50;
 
 
-	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 0, fuck);
-	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*1, fuck2);
-	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*2, fuck3);
+	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 0, light);
+	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*1, light2);
+	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*2, light3);
 
 
 	pass.setPipeline(pipelines["gbuffer"]);

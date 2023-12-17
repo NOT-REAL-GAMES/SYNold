@@ -18,7 +18,7 @@
 			"transform": {
 				"parent": "",
 
-				"position": [0,0,0],
+				"position": [-40,-4,0],
 				"rotation": [0,180,0],
 				"scale": [1,1,1]
 			},
