@@ -15,8 +15,8 @@ export async function update(){
     scenes.gameObjects[0]["seconds"].transform.rotation[0] = d.getSeconds()*6
     scenes.gameObjects[0]["minutes"].transform.rotation[0] = d.getMinutes()*6
     scenes.gameObjects[0]["hours"].transform.rotation[0] = d.getHours()*30
-    scenes.gameObjects[0]["camera"].transform.rotation[1] = Date.now()/1000*360/(math.pi*2)+45
-    scenes.gameObjects[0]["clock"].transform.rotation[1] = Date.now()/1000*360/-(math.pi*2)
+    scenes.gameObjects[0]["camera"].transform.rotation[1] = (Date.now())/1000*360/(3.1416*2)
+    scenes.gameObjects[0]["clock"].transform.rotation[1] = (Date.now()%86400000)/1000*360/-(3.1416*2)+180
     scenes.gameObjects[0]["camera"].transform.position[2] = Math.sin(Date.now()/1000)*50
     scenes.gameObjects[0]["camera"].transform.position[0] = Math.cos(Date.now()/1000)*50+40
     
