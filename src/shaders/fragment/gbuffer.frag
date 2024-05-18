@@ -16,7 +16,7 @@ fn main(
     ) -> GBufferOutput {
     
     var out : GBufferOutput;
-    out.normal = vec4(normalize((faceNormals*0.25+vertexNormals*0.75)), 1.0);
+    out.normal = vec4(normalize((faceNormals*0.0+vertexNormals*1.00)), 1.0);
     out.albedo = textureSample(tex, smp, uv);
     return out;
 }

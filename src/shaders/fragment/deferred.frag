@@ -79,7 +79,7 @@ fn main(
   }
 
   // some manual ambient
-  result += vec3(0.2,0.075,0.15);
+  //result += vec3(0.2,0.075,0.15);
 
   return vec4(result, 1.0);
 }

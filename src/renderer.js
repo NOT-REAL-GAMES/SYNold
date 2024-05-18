@@ -460,6 +460,8 @@ export async function getRecursiveTransform(obj){
 
 export async function render(){	
 
+	await getBuffersFromGameObjects();
+
 	await syn.update();
 	await updateGBufferTextures();
 
@@ -524,15 +526,15 @@ export async function render(){
 
 	//TODO: properly implement this through scenes
 	var light = new Float32Array(8);
-	light[0] = -40//;
+	light[0] = Math.sin(Date.now()/200)*30-40//;
 	light[1] = 0;
-	light[2] = Math.sin(Date.now()/500)*-15; //z
+	light[2] = Math.cos(Date.now()/1000)*30; //z
 	light[3] = 1
 
 	light[4] = 1;
 	light[5] = 0;
 	light[6] = 0;
-	light[7] = 50;
+	light[7] = 200;
 
 	var light2 = new Float32Array(8);
 	light2[0] = -40//;
@@ -558,8 +560,8 @@ export async function render(){
 
 
 	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 0, light);
-	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*1, light2);
-	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*2, light3);
+	//device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*1, light2);
+	//device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*2, light3);
 
 
 	pass.setPipeline(pipelines["gbuffer"]);
@@ -662,7 +664,7 @@ export async function getBuffersFromGameObjects(){
 
 		for(var j=0;j<model.indices.length;){
 			var cur = model.indices[j];
-			
+
 			vtx.push(model.positions[cur*3])
 			vtx.push(model.positions[(cur*3)+1])
 			vtx.push(model.positions[(cur*3)+2])
@@ -691,7 +693,7 @@ export async function getBuffersFromGameObjects(){
 					model.positions[cur*3+1],
 					model.positions[cur*3+2],
 				);
-
+	
 				var v2 = syn.math.vec3.set(
 					model.positions[(cur2)*3],
 					model.positions[(cur2)*3+1],
@@ -745,18 +747,31 @@ export async function getBuffersFromGameObjects(){
 							model.positions[cur*3+1],
 							model.positions[cur*3+2],
 						);
+
+						v1 = syn.math.vec3.rotateX(v1,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
+						v1 = syn.math.vec3.rotateY(v1,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
+						v1 = syn.math.vec3.rotateZ(v1,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
 		
 						var v2 = syn.math.vec3.set(
 							model.positions[(cur2)*3],
 							model.positions[(cur2)*3+1],
 							model.positions[(cur2)*3+2],
 						);
+
+						v2 = syn.math.vec3.rotateX(v2,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
+						v2 = syn.math.vec3.rotateY(v2,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
+						v2 = syn.math.vec3.rotateZ(v2,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
 		
 						var v3 = syn.math.vec3.set(
 							model.positions[(cur3)*3],
 							model.positions[(cur3)*3+1],
 							model.positions[(cur3)*3+2],
 						);
+
+						v3 = syn.math.vec3.rotateX(v3,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
+						v3 = syn.math.vec3.rotateY(v3,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
+						v3 = syn.math.vec3.rotateZ(v3,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
+
 
 						var u = syn.math.vec3.subtract(v2,v1);
 						var v = syn.math.vec3.subtract(v3,v1);
