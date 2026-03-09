@@ -713,8 +713,8 @@ export async function getBuffersFromGameObjects(){
 
 				n = syn.math.vec3.normalize(n)
 
-				n = syn.math.vec3.divide(n,syn.math.vec3.fromValues(-2,-2,-2));
-				n = syn.math.vec3.add(n,syn.math.vec3.fromValues(.5,.5,.5))
+				//n = syn.math.vec3.divide(n,syn.math.vec3.fromValues(-2,-2,-2));
+				//n = syn.math.vec3.add(n,syn.math.vec3.fromValues(.5,.5,.5))
 
 				nml.push(n[0])
 				nml.push(n[1])
