@@ -748,9 +748,9 @@ export async function getBuffersFromGameObjects(){
 							model.positions[cur*3+2],
 						);
 
-						v1 = syn.math.vec3.rotateX(v1,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
-						v1 = syn.math.vec3.rotateY(v1,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
-						v1 = syn.math.vec3.rotateZ(v1,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
+						//v1 = syn.math.vec3.rotateX(v1,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
+						//v1 = syn.math.vec3.rotateY(v1,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
+						//v1 = syn.math.vec3.rotateZ(v1,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
 		
 						var v2 = syn.math.vec3.set(
 							model.positions[(cur2)*3],
@@ -758,9 +758,9 @@ export async function getBuffersFromGameObjects(){
 							model.positions[(cur2)*3+2],
 						);
 
-						v2 = syn.math.vec3.rotateX(v2,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
-						v2 = syn.math.vec3.rotateY(v2,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
-						v2 = syn.math.vec3.rotateZ(v2,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
+						//v2 = syn.math.vec3.rotateX(v2,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
+						//v2 = syn.math.vec3.rotateY(v2,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
+						//v2 = syn.math.vec3.rotateZ(v2,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
 		
 						var v3 = syn.math.vec3.set(
 							model.positions[(cur3)*3],
@@ -768,9 +768,9 @@ export async function getBuffersFromGameObjects(){
 							model.positions[(cur3)*3+2],
 						);
 
-						v3 = syn.math.vec3.rotateX(v3,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
-						v3 = syn.math.vec3.rotateY(v3,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
-						v3 = syn.math.vec3.rotateZ(v3,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
+						//v3 = syn.math.vec3.rotateX(v3,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
+						//v3 = syn.math.vec3.rotateY(v3,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
+						//v3 = syn.math.vec3.rotateZ(v3,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
 
 
 						var u = syn.math.vec3.subtract(v2,v1);
