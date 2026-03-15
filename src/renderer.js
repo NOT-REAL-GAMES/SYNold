@@ -141,8 +141,11 @@ async function initializeTransforms(){
 	}
 }
 
+async function initializeLights() {
+	
+}
+
 async function initializeMaterials(){
-	//console.log(syn.scenes.gameObjects)
 	var obj = Object.values(syn.scenes.gameObjects[0]);
 	for(var i=0;i<obj.length;++i){			
 		var bufParams = [];
@@ -318,7 +321,7 @@ export async function init(){
 var resolutionScale = new Float32Array(1);
 //TODO: dynamic resolution scaling
 //console.log(performance.memory.jsHeapSizeLimit/1024/1024/1024);
-resolutionScale[0] = 1;
+resolutionScale[0] = 1.5;
 
 function resize(){
 	var w = canvas.clientWidth/resolutionScale[0]; var h = canvas.clientHeight/resolutionScale[0];
@@ -512,10 +515,6 @@ export async function render(){
 	projmat = syn.math.mat4.rotateY(projmat,syn.scenes.gameObjects[0]["camera"].transform.rotation[1]/57.296)
 	projmat = syn.math.mat4.rotateZ(projmat,syn.scenes.gameObjects[0]["camera"].transform.rotation[2]/57.296)
 
-
-	//rotmat = syn.math.mat4.invert(rotmat);
-	//rotmat = syn.math.mat4.transpose(rotmat);
-
 	projmat = syn.math.mat4.translate(projmat,syn.scenes.gameObjects[0]["camera"].transform.position);
 	
 	device.queue.writeBuffer(buffers[1]["transform"].buffer["projMatrix"], 0, projmat);
@@ -526,42 +525,42 @@ export async function render(){
 
 	//TODO: properly implement this through scenes
 	var light = new Float32Array(8);
-	light[0] = Math.sin(Date.now()/200)*30-40//;
+	light[0] = Math.sin((Date.now()+Math.PI/3)/300)*10-75;
 	light[1] = 0;
-	light[2] = Math.cos(Date.now()/1000)*30; //z
+	light[2] = Math.cos((Date.now()+Math.PI/3)/300)*10; //z
 	light[3] = 1
 
 	light[4] = 1;
 	light[5] = 0;
 	light[6] = 0;
-	light[7] = 200;
+	light[7] = 100;
 
 	var light2 = new Float32Array(8);
-	light2[0] = -40//;
+	light2[0] = Math.sin((Date.now()+Math.PI/3*2)/300)*10-50;
 	light2[1] = 0;
-	light2[2] = -15; //z
+	light2[2] = Math.cos((Date.now()+Math.PI/3*2)/300)*10+25; //z
 	light2[3] = 1
 
 	light2[4] = 0;
 	light2[5] = 1;
 	light2[6] = 0;
-	light2[7] = 50;
+	light2[7] = 100;
 
 	var light3 = new Float32Array(8);
-	light3[0] = -40//;
+	light3[0] = Math.sin((Date.now()+Math.PI/3*3)/300)*10-50;
 	light3[1] = 0;
-	light3[2] = 15; //z
+	light3[2] = Math.cos((Date.now()+Math.PI/3*3)/300)*10-25; //z
 	light3[3] = 1
 
 	light3[4] = 0;
 	light3[5] = 0;
 	light3[6] = 1;
-	light3[7] = 50;
+	light3[7] = 100;
 
 
 	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 0, light);
-	//device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*1, light2);
-	//device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*2, light3);
+	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*1, light2);
+	device.queue.writeBuffer(buffers[0]["lights"].buffer["lights"], 8*8*2, light3);
 
 
 	pass.setPipeline(pipelines["gbuffer"]);
@@ -713,9 +712,6 @@ export async function getBuffersFromGameObjects(){
 
 				n = syn.math.vec3.normalize(n)
 
-				//n = syn.math.vec3.divide(n,syn.math.vec3.fromValues(-2,-2,-2));
-				//n = syn.math.vec3.add(n,syn.math.vec3.fromValues(.5,.5,.5))
-
 				nml.push(n[0])
 				nml.push(n[1])
 				nml.push(n[2])
@@ -747,20 +743,12 @@ export async function getBuffersFromGameObjects(){
 							model.positions[cur*3+1],
 							model.positions[cur*3+2],
 						);
-
-						//v1 = syn.math.vec3.rotateX(v1,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
-						//v1 = syn.math.vec3.rotateY(v1,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
-						//v1 = syn.math.vec3.rotateZ(v1,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
 		
 						var v2 = syn.math.vec3.set(
 							model.positions[(cur2)*3],
 							model.positions[(cur2)*3+1],
 							model.positions[(cur2)*3+2],
 						);
-
-						//v2 = syn.math.vec3.rotateX(v2,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
-						//v2 = syn.math.vec3.rotateY(v2,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
-						//v2 = syn.math.vec3.rotateZ(v2,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
 		
 						var v3 = syn.math.vec3.set(
 							model.positions[(cur3)*3],
@@ -768,22 +756,13 @@ export async function getBuffersFromGameObjects(){
 							model.positions[(cur3)*3+2],
 						);
 
-						//v3 = syn.math.vec3.rotateX(v3,syn.math.vec3.create(),obj.transform.rotation[0]/57.2958);
-						//v3 = syn.math.vec3.rotateY(v3,syn.math.vec3.create(),obj.transform.rotation[1]/57.2958);
-						//v3 = syn.math.vec3.rotateZ(v3,syn.math.vec3.create(),obj.transform.rotation[2]/57.2958);		
-
-
 						var u = syn.math.vec3.subtract(v2,v1);
 						var v = syn.math.vec3.subtract(v3,v1);
 		
 						//calculate normal of triangle
 						var n = syn.math.vec3.cross(u,v)
 
-						n=syn.math.vec3.normalize(n)
-
-						//n = syn.math.vec3.divide(n,syn.math.vec3.fromValues(-2,-2,-2));
-						//n = syn.math.vec3.add(n,syn.math.vec3.fromValues(.5,.5,.5))
-		
+						n=syn.math.vec3.normalize(n)		
 
 						bla.push(n)
 					}

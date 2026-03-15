@@ -4,7 +4,7 @@
 			"transform": {
 				"parent": "",
 
-				"position": [-10,0,0],
+				"position": [0,0,0],
 				"rotation": [0,270,0],
 				"scale": [1,1,1]
 			},
@@ -24,14 +24,29 @@
 			},
 			"components":{}
 		},
+		"sphere": {			
+			"transform":{
+				"parent": "clock",
+
+				"position": [10,-0,0],
+				"rotation": [0,0,0],
+				"scale": [0.10,5,5]
+			},
+			"components":{
+				"renderer":{
+					"modelSource": "./src/models/sphere.model",
+					"materials": ["test"]
+				}
+			}
+		},
 	
 		"seconds": {			
 			"transform":{
 				"parent": "clock",
 
-				"position": [-0.1,0,0],
+				"position": [0,0,0],
 				"rotation": [0,0,0],
-				"scale": [0.05,1,0.05]
+				"scale": [0.05,2,0.05]
 			},
 			"components":{
 				"renderer":{
@@ -43,9 +58,9 @@
 			"transform":{
 				"parent": "clock",
 
-				"position": [0,0,0.1],
+				"position": [0,0,0],
 				"rotation": [0,0,0],
-				"scale": [0.10,0.8,0.10]
+				"scale": [0.10,1.6,0.10]
 			},
 			"components":{
 				"renderer":{
@@ -59,7 +74,7 @@
 
 				"position": [0,0,0],
 				"rotation": [0,0,0],
-				"scale": [0.15,0.75,0.15]
+				"scale": [0.15,1.5,0.15]
 			},
 			"components":{
 				"renderer":{
@@ -71,7 +86,7 @@
 			"transform":{
 				"parent": "",
 
-				"position": [0,-10,0],
+				"position": [0,-20,0],
 				"rotation": [0,0,0],
 				"scale": [100,100,100]
 			},
